@@ -130,7 +130,7 @@ src/
 
 ## Integrantes
 
-| Nombre |  
+| Nombres |  
 |--------|
 | `Benjamin Gutierrez` |
 | `Juan Gomez` |
