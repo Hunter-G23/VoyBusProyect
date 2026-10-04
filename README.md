@@ -22,7 +22,7 @@ Proyecto desarrollado para el curso **Desarrollo de Soluciones Móviles — 2026
 ## Instalación
 
 ```bash
-git clone <url-del-repo>
+git clone <https://github.com/Hunter-G23/VoyBusProyect.git>
 cd Backend_VoyBus
 npm install
 ```
@@ -41,7 +41,6 @@ cp .env.example .env
 | `JWT_SECRET` | Clave secreta para firmar tokens          | `cambia_esto_por_algo_seguro` |
 | `DB_PATH`    | Ruta del archivo de base de datos SQLite  | `./src/database/voybus.db` |
 
-**Importante:** no subir el archivo `.env` al repositorio (ya está en `.gitignore`).
 
 ## Preparar la base de datos
 
@@ -131,7 +130,7 @@ src/
 
 ## Integrantes
 
-| Nombre | GitHub |
-|--------|--------|
-| `[pendiente]` | `[pendiente]` |
-| `[pendiente]` | `[pendiente]` |
+| Nombre |  
+|--------|
+| `Benjamin Gutierrez` |
+| `Juan Gomez` |
