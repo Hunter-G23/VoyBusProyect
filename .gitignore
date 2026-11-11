@@ -1,0 +1,16 @@
+node_modules/
+.expo/
+dist/
+dist-android/
+dist-ios/
+coverage/
+*.log
+.env
+.env.local
+*.db
+*.db-shm
+*.db-wal
+.dev-jwt-secret
+test-results/
+playwright-report/
+
