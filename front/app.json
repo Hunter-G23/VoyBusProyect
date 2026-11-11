@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "VoyBus",
+    "slug": "voybus",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "voybus",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "cl.ucn.voybus"
+    },
+    "web": {
+      "bundler": "metro",
+      "name": "VoyBus"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}
