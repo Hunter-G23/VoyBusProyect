@@ -1,0 +1,19 @@
+{
+  "name": "voybus-proyecto",
+  "private": true,
+  "scripts": {
+    "dev:api": "npm --prefix backend run dev",
+    "dev:app": "npm --prefix front start",
+    "test": "npm --prefix backend test",
+    "typecheck": "npm --prefix front run typecheck",
+    "test:e2e": "playwright test",
+    "format": "prettier --write backend/src backend/test front/src front/App.tsx front/index.ts e2e scripts playwright.config.ts"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "prettier": "^3.10.0"
+  }
+}
