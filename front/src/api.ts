@@ -17,12 +17,18 @@ export function setSessionExpired(callback: () => void) {
   onSessionExpired = callback;
 }
 export async function api<T>(path: string, body?: unknown): Promise<T> {
+  return requestJson<T>(path, body === undefined ? "GET" : "POST", body);
+}
+export function apiJson<T>(path: string, method: "PUT" | "PATCH" | "DELETE", body?: unknown): Promise<T> {
+  return requestJson<T>(path, method, body);
+}
+async function requestJson<T>(path: string, method: string, body?: unknown): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   try {
     const token = await session.get();
     const response = await fetch(API_URL + path, {
-      method: body === undefined ? "GET" : "POST",
+      method,
       headers: {
         "Content-Type": "application/json",
         ...(token && Platform.OS !== "web"
