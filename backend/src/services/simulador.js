@@ -23,6 +23,7 @@ function simuladorService(db, repo, now) {
           origen.latitud + (destino.latitud - origen.latitud) * fraccion,
           origen.longitud + (destino.longitud - origen.longitud) * fraccion,
           medidaEn,
+          "simulacion",
         );
       }
     });
@@ -32,7 +33,14 @@ function simuladorService(db, repo, now) {
   return {
     step,
     start() {
-      if (!timer) timer = setInterval(step, 5000);
+      if (!timer)
+        timer = setInterval(() => {
+          try {
+            step();
+          } catch (error) {
+            console.error("Error en el simulador de posiciones:", error);
+          }
+        }, 5000);
     },
     stop() {
       clearInterval(timer);

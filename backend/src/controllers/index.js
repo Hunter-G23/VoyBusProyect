@@ -24,6 +24,46 @@ function controllers(services, config) {
     logout: (req, res) =>
       res.clearCookie("voybus_session", cookieOptions).status(204).end(),
     me: (req, res) => res.json({ usuario: req.user }),
+    updateMe: (req, res) =>
+      res.json({ usuario: services.auth.update(req.user.id, req.body) }),
+    password: asyncAction(async (req, res) => {
+      const data = await services.auth.password(req.user.id, req.body);
+      res.cookie("voybus_session", data.token, cookieOptions).json(data);
+    }),
+    photo: (req, res) => {
+      const photo = services.auth.photo(req.user.id);
+      res
+        .set({
+          "Content-Type": photo.tipo,
+          "Cache-Control": "private, no-store",
+        })
+        .send(Buffer.from(photo.datos));
+    },
+    putPhoto: (req, res) =>
+      res.json({ usuario: services.auth.putPhoto(req.user.id, req.body) }),
+    deletePhoto: (req, res) => {
+      services.auth.deletePhoto(req.user.id);
+      res.status(204).end();
+    },
+    preferences: (req, res) =>
+      res.json({ usuario: services.auth.preferences(req.user.id, req.body) }),
+    favorites: (req, res) =>
+      res.json({ favoritos: services.favoritos.list(req.user.id) }),
+    createFavorite: (req, res) => {
+      const data = services.favoritos.create(req.user.id, req.body);
+      res.status(data.creado ? 201 : 200).json(data);
+    },
+    deleteFavorite: (req, res) => {
+      services.favoritos.remove(req.user.id, req.params.id);
+      res.status(204).end();
+    },
+    history: (req, res) => res.json(services.viaje.history(req.user.id)),
+    lineState: (req, res) =>
+      res.json({
+        linea: services.admin.state(req.user.id, req.params.id, req.body),
+      }),
+    lineEvents: (req, res) =>
+      res.json({ eventos: services.admin.events(req.query.linea_id) }),
     lines: (req, res) => res.json({ lineas: services.red.lines() }),
     routes: (req, res) => res.json(services.red.routes(req.params.id)),
     stops: (req, res) => res.json(services.red.stops(req.params.id)),

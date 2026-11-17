@@ -4,10 +4,13 @@ function redService(db, repo, config, now) {
     vehicles() {
       // RF07
       const fecha = now();
+      const vehiculos = repo.activeVehicles();
       return {
-        fuente: config.simularGps ? "simulacion" : "gps",
+        fuente: vehiculos.some((v) => v.origen === "simulacion")
+          ? "simulacion"
+          : "gps",
         generado_en: fecha.toISOString(),
-        vehiculos: repo.activeVehicles().map((v) => ({
+        vehiculos: vehiculos.map((v) => ({
           servicio_id: v.servicio_id,
           vehiculo: v.vehiculo,
           linea: v.linea,
@@ -28,14 +31,16 @@ function redService(db, repo, config, now) {
     lines: () =>
       db
         .prepare(
-          "SELECT id,codigo,nombre FROM linea WHERE activa=1 ORDER BY codigo",
+          "SELECT id,codigo,nombre,color,color_texto,electrica,estado,fuente FROM linea ORDER BY codigo",
         )
         .all(), // RF04
     routes(value) {
       // RF05
       const id = positiveId(value);
       const linea = db
-        .prepare("SELECT id,codigo,nombre FROM linea WHERE id=? AND activa=1")
+        .prepare(
+          "SELECT id,codigo,nombre,color,color_texto,electrica,estado,fuente FROM linea WHERE id=? AND activa=1",
+        )
         .get(id);
       if (!linea)
         fail(404, "LINEA_NO_DISPONIBLE", "Esta línea no está disponible.");
@@ -43,7 +48,7 @@ function redService(db, repo, config, now) {
         linea,
         recorridos: db
           .prepare(
-            "SELECT id,nombre,sentido,origen,destino FROM recorrido WHERE linea_id=? AND activo=1 ORDER BY id",
+            "SELECT id,nombre,sentido,origen,destino,codigo,variante FROM recorrido WHERE linea_id=? AND activo=1 ORDER BY id",
           )
           .all(id),
       };

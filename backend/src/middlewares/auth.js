@@ -30,7 +30,11 @@ function authenticate(repo, config) {
         );
       }
       const user = repo.userById(Number(payload.sub));
-      if (!user?.activo)
+      if (
+        !user?.activo ||
+        !Number.isSafeInteger(payload.sv) ||
+        payload.sv !== repo.sessionVersion(user.id)
+      )
         fail(
           401,
           "SESION_INVALIDA",

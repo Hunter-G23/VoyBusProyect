@@ -4,7 +4,7 @@ function repository(db) {
       db
         .prepare(
           `SELECT s.id AS servicio_id,v.codigo_vinculacion AS vehiculo,l.codigo AS linea,
-      s.recorrido_id,r.sentido,p.latitud,p.longitud,p.medida_en
+      s.recorrido_id,r.sentido,p.latitud,p.longitud,p.medida_en,p.origen
       FROM servicio s JOIN vehiculo v ON v.id=s.vehiculo_id
       JOIN recorrido r ON r.id=s.recorrido_id JOIN linea l ON l.id=r.linea_id
       LEFT JOIN posicion_vehiculo p ON p.id=(
@@ -20,16 +20,34 @@ function repository(db) {
       JOIN paradero p ON p.id=rp.paradero_id WHERE rp.recorrido_id=? ORDER BY rp.posicion`,
         )
         .all(recorridoId),
-    addPosition: (servicioId, latitud, longitud, medidaEn) =>
+    addPosition: (servicioId, latitud, longitud, medidaEn, origen = "gps") =>
       db
         .prepare(
-          "INSERT INTO posicion_vehiculo(servicio_id,latitud,longitud,medida_en) VALUES(?,?,?,?)",
+          "INSERT INTO posicion_vehiculo(servicio_id,latitud,longitud,medida_en,origen) VALUES(?,?,?,?,?)",
         )
-        .run(servicioId, latitud, longitud, medidaEn),
-    userById: (id) =>
-      db
-        .prepare("SELECT id,nombre,correo,rol,activo FROM usuario WHERE id=?")
-        .get(id),
+        .run(servicioId, latitud, longitud, medidaEn, origen),
+    userById(id) {
+      const user = db
+        .prepare(
+          `SELECT id,nombre,correo,rol,activo,idioma,
+        EXISTS(SELECT 1 FROM usuario_foto WHERE usuario_id=usuario.id) AS tiene_foto
+        FROM usuario WHERE id=?`,
+        )
+        .get(id);
+      if (!user) return undefined;
+      user.tiene_foto = Boolean(user.tiene_foto);
+      user.notificaciones = { estado_linea_favorita: false, solicitud: false };
+      for (const p of db
+        .prepare(
+          "SELECT tipo,activa FROM preferencia_notificacion WHERE usuario_id=?",
+        )
+        .all(id))
+        user.notificaciones[p.tipo] = Boolean(p.activa);
+      return user;
+    },
+    sessionVersion: (id) =>
+      db.prepare("SELECT sesion_version FROM usuario WHERE id=?").get(id)
+        ?.sesion_version,
     userByEmail: (correo) =>
       db.prepare("SELECT * FROM usuario WHERE correo=?").get(correo),
     activeLink: (userId) =>

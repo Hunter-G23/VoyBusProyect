@@ -11,7 +11,7 @@ function openDatabase(filename) {
   return db;
 }
 function migrate(db) {
-  db.exec(fs.readFileSync(path.join(__dirname, "schema.sql"), "utf8"));
+  require("./migrate").migrate(db);
 }
 function transaction(db, action) {
   db.exec("BEGIN IMMEDIATE");
