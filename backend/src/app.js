@@ -7,7 +7,7 @@ const { viajeService } = require("./services/viaje");
 const { conductorService } = require("./services/conductor");
 const { controllers } = require("./controllers");
 const { routes } = require("./routes");
-function createApp(db, config) {
+function createApp(db, config, now = () => new Date()) {
   const app = express();
   app.disable("x-powered-by");
   app.use((req, res, next) => {
@@ -44,7 +44,7 @@ function createApp(db, config) {
   const repo = repository(db);
   const services = {
     auth: authService(db, repo, config),
-    red: redService(db),
+    red: redService(db, repo, config, now),
     viaje: viajeService(db, repo),
     conductor: conductorService(db),
   };

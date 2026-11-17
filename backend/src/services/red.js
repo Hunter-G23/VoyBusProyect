@@ -1,6 +1,30 @@
 const { fail, positiveId } = require("../utils/errors");
-function redService(db) {
+function redService(db, repo, config, now) {
   return {
+    vehicles() {
+      // RF07
+      const fecha = now();
+      return {
+        fuente: config.simularGps ? "simulacion" : "gps",
+        generado_en: fecha.toISOString(),
+        vehiculos: repo.activeVehicles().map((v) => ({
+          servicio_id: v.servicio_id,
+          vehiculo: v.vehiculo,
+          linea: v.linea,
+          recorrido_id: v.recorrido_id,
+          sentido: v.sentido,
+          posicion:
+            v.medida_en === null
+              ? null
+              : {
+                  latitud: v.latitud,
+                  longitud: v.longitud,
+                  medida_en: v.medida_en,
+                  desactualizada: fecha - Date.parse(v.medida_en) > 30000,
+                },
+        })),
+      };
+    },
     lines: () =>
       db
         .prepare(

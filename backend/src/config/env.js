@@ -27,6 +27,7 @@ module.exports = {
   ),
   jwtSecret: signingKey(),
   production: process.env.NODE_ENV === "production",
+  simularGps: process.env.SIMULAR_GPS === "true",
   origins: (
     process.env.WEB_ORIGINS || "http://localhost:8081,http://127.0.0.1:8081"
   )
