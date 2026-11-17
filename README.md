@@ -5,6 +5,8 @@ Equipo indicado en el repositorio: Juan Gomez y Benjamin Gutierrez.
 
 Implementación inicial de nueve requisitos de la [ERS](docs/entrega2/ERS_VoyBus_Entrega2_v1.docx), **pendiente de validación del cliente**. El catálogo y los servicios son ficticios para demostración. El [estado de implementación](docs/entrega2/IMPLEMENTACION.md) distingue lo desarrollado de lo pendiente. Hay un [borrador de consulta al cliente](docs/entrega2/CORREO_CLIENTE.md), todavía no enviado.
 
+La [paleta de color](docs/entrega2/PALETA.md) ya está definida y aplicada por el equipo. Para solicitar la aprobación del cliente están preparados la [ficha PDF](docs/entrega2/PALETA_VoyBus_v1.pdf) y el [correo unificado de ERS y paleta](docs/entrega2/CORREO_CLIENTE.md).
+
 ## Tecnologías
 
 React Native, Expo y TypeScript para el cliente. Node.js 24 o superior, Express y SQLite mediante node:sqlite para la API. JWT de 60 minutos, bcrypt con factor 12, SecureStore nativo y cookie HttpOnly en web. Node Test Runner y Playwright para las pruebas.
@@ -112,4 +114,4 @@ Las pruebas API usan una base temporal. Playwright levanta su API aislada en 300
 
 backend/src separa config, database, routes, controllers, services, models, middlewares y utils. backend/test contiene pruebas API; front/src contiene las pantallas, API, almacenamiento y consultas; e2e contiene el flujo integrado. docs/entrega2 reúne ERS, estado y borrador de correo.
 
-La presentación, el Gantt, el tablero, el video y la validación física se completarán posteriormente con evidencias reales del equipo. No se atribuyen al cliente aprobaciones no recibidas.
+La [presentación editable](docs/entrega2/Presentacion_Entrega2_VoyBus.pptx) conserva las diez diapositivas de la plantilla. La [guía de exposición](docs/entrega2/GUIA_PRESENTACION.md) y la [planificación hasta el 16 de noviembre](docs/entrega2/PLANIFICACION.md) acompañan el avance. Quedan por incorporar la validación física, el tablero externo, los responsables individuales, el video y los correos reales del cliente. No se atribuyen aprobaciones no recibidas.

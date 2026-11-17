@@ -226,14 +226,16 @@ function PassengerTrip({ user }: { user: User }) {
           <View style={[styles.panel, { backgroundColor: colors.ink }]}>
             <View style={styles.row}>
               <Icon name="bus-outline" size={30} color={colors.yellow} />
-              <Text style={{ fontSize: 26, fontWeight: "700", color: "white" }}>
+              <Text
+                style={{ fontSize: 26, fontWeight: "700", color: colors.paper }}
+              >
                 {link.codigo_vinculacion}
               </Text>
             </View>
-            <Text style={{ fontSize: 17, lineHeight: 25, color: "white" }}>
+            <Text style={{ fontSize: 17, lineHeight: 25, color: colors.paper }}>
               {link.linea} · {link.recorrido}
             </Text>
-            <Text style={{ fontSize: 15, color: "#D6E8DE" }}>
+            <Text style={{ fontSize: 15, color: colors.onDark }}>
               {link.sentido} · Patente {link.patente}
             </Text>
           </View>

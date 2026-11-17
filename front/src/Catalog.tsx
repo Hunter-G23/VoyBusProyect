@@ -119,7 +119,7 @@ export function Catalog({ onTrip }: { onTrip: () => void }) {
                     style={{
                       fontSize: 12,
                       fontWeight: "700",
-                      color: index === 0 ? "white" : colors.ink,
+                      color: index === 0 ? colors.paper : colors.ink,
                     }}
                   >
                     {stop.posicion}

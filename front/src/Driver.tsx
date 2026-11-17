@@ -26,14 +26,16 @@ export function Driver() {
         <View style={[styles.panel, { backgroundColor: colors.ink }]}>
           <View style={styles.row}>
             <Icon name="bus-outline" color={colors.yellow} size={30} />
-            <Text style={{ fontSize: 26, fontWeight: "700", color: "white" }}>
+            <Text
+              style={{ fontSize: 26, fontWeight: "700", color: colors.paper }}
+            >
               {service.codigo_vinculacion}
             </Text>
           </View>
-          <Text style={{ fontSize: 17, color: "white" }}>
+          <Text style={{ fontSize: 17, color: colors.paper }}>
             {service.linea} · {service.sentido}
           </Text>
-          <Text style={{ fontSize: 15, color: "#D6E8DE" }}>
+          <Text style={{ fontSize: 15, color: colors.onDark }}>
             {service.recorrido} · {service.patente}
           </Text>
         </View>

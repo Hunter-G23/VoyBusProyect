@@ -77,7 +77,7 @@ export default function App() {
               justifyContent: "center",
             }}
           >
-            <Icon name="bus-outline" color="white" size={27} />
+            <Icon name="bus-outline" color={colors.paper} size={27} />
           </View>
           <Text
             style={{

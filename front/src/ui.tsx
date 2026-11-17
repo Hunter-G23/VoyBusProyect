@@ -12,12 +12,16 @@ import { Ionicons } from "@expo/vector-icons";
 export const colors = {
   ink: "#132F35",
   green: "#12634D",
+  greenPressed: "#0D4B3B",
   background: "#F7F7F0",
   paper: "#FFFFFF",
   muted: "#526769",
   line: "#D6DFD9",
   yellow: "#F6CE55",
   error: "#9B2C2C",
+  surface: "#E8EEE9",
+  border: "#71867C",
+  onDark: "#D6E8DE",
 };
 export const styles = StyleSheet.create({
   page: { gap: 22, padding: 24, paddingBottom: 40 },
@@ -104,8 +108,12 @@ export function Button({
         paddingHorizontal: 20,
         paddingVertical: 14,
         borderRadius: 12,
-        backgroundColor: secondary ? "#E8EEE9" : colors.green,
-        opacity: disabled || busy ? 0.55 : pressed ? 0.8 : 1,
+        backgroundColor: secondary
+          ? colors.surface
+          : pressed
+            ? colors.greenPressed
+            : colors.green,
+        opacity: disabled || busy ? 0.55 : secondary && pressed ? 0.8 : 1,
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "row",
@@ -113,13 +121,13 @@ export function Button({
       })}
     >
       {busy && (
-        <ActivityIndicator color={secondary ? colors.green : "#FFFFFF"} />
+        <ActivityIndicator color={secondary ? colors.green : colors.paper} />
       )}
       <Text
         style={{
           fontSize: 16,
           fontWeight: "700",
-          color: secondary ? colors.ink : "#FFFFFF",
+          color: secondary ? colors.ink : colors.paper,
           textAlign: "center",
         }}
       >
@@ -144,7 +152,7 @@ export function Field({
           {
             minHeight: 52,
             borderWidth: 1,
-            borderColor: error ? colors.error : "#A8BAB0",
+            borderColor: error ? colors.error : colors.border,
             borderRadius: 10,
             paddingHorizontal: 14,
             paddingVertical: 12,

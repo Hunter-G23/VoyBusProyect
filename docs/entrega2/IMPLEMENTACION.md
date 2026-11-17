@@ -1,6 +1,6 @@
 # Implementación de la entrega 2
 
-Revisión: 11 de noviembre de 2026. Referencia: ERS VoyBus 1.0 propuesta. **Alcance y paleta pendientes de validación del cliente.** Este registro describe el avance posterior a la creación de la ERS y no acredita aprobación del cliente.
+Revisión de código: 11 de noviembre de 2026. Documentación actualizada el 12 de noviembre. Referencia: ERS VoyBus 1.0 propuesta. **Paleta definida y aplicada por el equipo; aprobación de paleta y alcance pendiente del cliente.** La especificación está en [PALETA.md](PALETA.md) y el correo unificado de ERS y paleta en [CORREO_CLIENTE.md](CORREO_CLIENTE.md). Este registro describe el avance posterior a la creación de la ERS y no acredita aprobación del cliente.
 
 | ID | Backend | Interfaz | Verificación |
 | --- | --- | --- | --- |
@@ -51,6 +51,6 @@ Los datos usan example.test y coordenadas ficticias. Las tablas de historia y po
 - Obtener validación del cliente. Borrador no enviado: `CORREO_CLIENTE.md`.
 - Probar teléfono/emulador, lector de pantalla, texto al 150 %, teclado y almacenamiento nativo.
 - Medir RNF03 con 20 usuarios concurrentes y registrar el entorno. Las pruebas funcionales no acreditan esa métrica.
-- Completar presentación, Gantt, tablero y video con fechas, responsables, aportes y enlaces reales. El usuario aplazó presentación y prueba física.
+- Completar las evidencias reales de la presentación: correo y respuesta, tablero, responsables, aportes y video. La planificación local propone ventanas hasta la entrega del 16 de noviembre; el reparto individual sigue pendiente. Ver PLANIFICACION.md y GUIA_PRESENTACION.md. La prueba física sigue pendiente.
 - Declarar rama y commit efectivamente presentados.
 - Revisar backend/.env, previamente versionado, antes de publicar. No se alteró su configuración local.
