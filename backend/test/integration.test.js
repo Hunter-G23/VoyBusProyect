@@ -236,11 +236,24 @@ test("RF04 catálogo público identifica líneas activas ordenadas", async () =>
   const response = await call("GET", "/red/lineas");
   assert.equal(response.status, 200);
   assert.deepEqual(
-    response.data.lineas
-      .filter((x) => x.estado === "activa")
-      .map((x) => x.codigo),
+    response.data.lineas.map((x) => x.codigo),
     ["T01", "T02"],
   );
+});
+test("RF04 todas=1 incluye líneas inactivas con estado y metadatos", async () => {
+  const response = await call("GET", "/red/lineas?todas=1");
+  assert.equal(response.status, 200);
+  assert.deepEqual(
+    response.data.lineas.map((x) => [x.codigo, x.estado]),
+    [
+      ["T01", "activa"],
+      ["T02", "activa"],
+      ["T03", "inactiva"],
+    ],
+  );
+  for (const linea of response.data.lineas)
+    for (const key of ["color", "color_texto", "electrica", "estado"])
+      assert.ok(Object.hasOwn(linea, key), key);
 });
 test("RF04 distingue catálogo vacío de errores y permite recuperarlo", async () => {
   const emptyDb = openDatabase(":memory:");
@@ -253,7 +266,7 @@ test("RF04 distingue catálogo vacío de errores y permite recuperarlo", async (
     assert.equal(response.status, 200);
     assert.deepEqual((await response.json()).lineas, []);
     seed(emptyDb);
-    assert.equal((await (await fetch(url)).json()).lineas.length, 3);
+    assert.equal((await (await fetch(url)).json()).lineas.length, 2);
   } finally {
     await new Promise((resolve) => emptyServer.close(resolve));
     emptyDb.close();

@@ -21,8 +21,10 @@ function controllers(services, config) {
       const data = await services.auth.login(req.body);
       res.cookie("voybus_session", data.token, cookieOptions).json(data);
     }),
-    logout: (req, res) =>
-      res.clearCookie("voybus_session", cookieOptions).status(204).end(),
+    logout: (req, res) => {
+      if (req.user) services.auth.logout(req.user.id);
+      res.clearCookie("voybus_session", cookieOptions).status(204).end();
+    },
     me: (req, res) => res.json({ usuario: req.user }),
     updateMe: (req, res) =>
       res.json({ usuario: services.auth.update(req.user.id, req.body) }),
@@ -40,7 +42,9 @@ function controllers(services, config) {
         .send(Buffer.from(photo.datos));
     },
     putPhoto: (req, res) =>
-      res.json({ usuario: services.auth.putPhoto(req.user.id, req.body) }),
+      res.json({
+        usuario: services.auth.putPhoto(req.user.id, req.body || {}),
+      }),
     deletePhoto: (req, res) => {
       services.auth.deletePhoto(req.user.id);
       res.status(204).end();
@@ -64,7 +68,8 @@ function controllers(services, config) {
       }),
     lineEvents: (req, res) =>
       res.json({ eventos: services.admin.events(req.query.linea_id) }),
-    lines: (req, res) => res.json({ lineas: services.red.lines() }),
+    lines: (req, res) =>
+      res.json({ lineas: services.red.lines(req.query.todas === "1") }),
     routes: (req, res) => res.json(services.red.routes(req.params.id)),
     stops: (req, res) => res.json(services.red.stops(req.params.id)),
     vehicles: (req, res) => res.json(services.red.vehicles()),

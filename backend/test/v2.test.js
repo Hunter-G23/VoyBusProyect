@@ -63,7 +63,7 @@ afterEach(async () => {
 });
 
 test("v2 catálogo expone metadatos, estados y variantes ordenados sin cambiar los campos existentes", async () => {
-  const res = await call("GET", "/red/lineas");
+  const res = await call("GET", "/red/lineas?todas=1");
   assert.equal(res.status, 200);
   assert.deepEqual(
     res.data.lineas.map((l) => l.codigo),
@@ -136,15 +136,13 @@ test("v2 favoritos requieren pasajero y validan la relación línea/recorrido", 
     ])
       assert.equal((await call(method, url, body, token)).status, 403);
   assert.equal((await call("GET", "/favoritos", undefined, null)).status, 401);
-  for (const body of [
-    { linea_id: "1x" },
-    { linea_id: 999 },
-    { linea_id: 1, recorrido_id: 3 },
-    { linea_id: 1, recorrido_id: 999 },
+  for (const [body, status] of [
+    [{ linea_id: "1x" }, 400],
+    [{ linea_id: 999 }, 404],
+    [{ linea_id: 1, recorrido_id: 3 }, 400],
+    [{ linea_id: 1, recorrido_id: 999 }, 400],
   ])
-    assert.ok(
-      [400, 404].includes((await call("POST", "/favoritos", body)).status),
-    );
+    assert.equal((await call("POST", "/favoritos", body)).status, status);
   assert.equal(db.prepare("SELECT COUNT(*) n FROM favorito").get().n, 0);
 });
 test("v2 perfil edita solo nombre, con las reglas RF01 y sin exponer secretos", async () => {
@@ -178,15 +176,12 @@ test("v2 contraseña valida actual, longitud, bytes y confirmación sin invalida
     nueva: "NewPassword2026!",
     confirmacion: "NewPassword2026!",
   };
-  assert.equal(
-    (
-      await call("POST", "/auth/contrasena", {
-        ...fields,
-        actual: "incorrecta",
-      })
-    ).status,
-    401,
-  );
+  const wrong = await call("POST", "/auth/contrasena", {
+    ...fields,
+    actual: "incorrecta",
+  });
+  assert.equal(wrong.status, 403);
+  assert.equal(wrong.data.error.codigo, "CONTRASENA_INCORRECTA");
   for (const cambio of [
     { nueva: "1234567" },
     { nueva: "a".repeat(65) },
@@ -226,6 +221,14 @@ test("v2 contraseña invalida todas las sesiones previas y renueva token y cooki
   );
   assert.equal(res.status, 200);
   assert.equal(jwt.decode(res.data.token).sv, 1);
+  assert.equal(
+    (
+      await call("GET", "/auth/me", undefined, null, {
+        Cookie: other.headers.get("set-cookie").split(";")[0],
+      })
+    ).status,
+    401,
+  );
   assert.match(res.headers.get("set-cookie"), /HttpOnly/);
   for (const token of [tokens.a, other.data.token])
     assert.equal((await call("GET", "/auth/me", undefined, token)).status, 401);
@@ -425,6 +428,157 @@ test("v2 foto acepta exactamente 512 KB y rechaza más bytes decodificados", asy
     413,
   );
 });
+test("B-fix 2 autentica antes de interpretar JSON grande", async () => {
+  for (const path of ["/auth/me/foto", "/auth/me/foto/"]) {
+    const response = await fetch(base + path, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: '{"datos_base64":"' + "a".repeat(600 * 1024),
+    });
+    assert.equal(response.status, 401);
+    assert.equal((await response.json()).error.codigo, "SESION_INVALIDA");
+  }
+});
+test("B-fix 2 acepta foto grande con ruta canónica y barra final", async () => {
+  const bytes = Buffer.alloc(450 * 1024);
+  Buffer.from([255, 216, 255]).copy(bytes);
+  for (const path of ["/auth/me/foto", "/auth/me/foto/"]) {
+    assert.equal(
+      (
+        await call("PUT", path, {
+          tipo: "image/jpeg",
+          datos_base64: bytes.toString("base64"),
+        })
+      ).status,
+      200,
+    );
+    assert.deepEqual((await call("GET", "/auth/me/foto")).bytes, bytes);
+  }
+  for (const body of [null, [], "invalid", {}])
+    assert.equal((await call("PUT", "/auth/me/foto/", body)).status, 400);
+});
+
+test("B-fix 4 logout revoca bearer y cookie y permite ausencia de sesión", async () => {
+  const login = await call(
+    "POST",
+    "/auth/login",
+    {
+      correo: "pasajero@example.test",
+      contrasena: password,
+    },
+    null,
+  );
+  const cookie = login.headers.get("set-cookie").split(";")[0];
+  assert.equal(
+    (await call("POST", "/auth/logout", {}, null, { Cookie: cookie })).status,
+    204,
+  );
+  assert.equal(
+    (await call("GET", "/auth/me", undefined, login.data.token)).status,
+    401,
+  );
+  assert.equal(
+    db.prepare("SELECT sesion_version FROM usuario WHERE id=1").get()
+      .sesion_version,
+    1,
+  );
+  assert.equal(
+    (await call("GET", "/auth/me", undefined, null, { Cookie: cookie })).status,
+    401,
+  );
+  assert.equal(
+    (await call("GET", "/auth/me", undefined, tokens.b)).status,
+    200,
+  );
+  assert.equal((await call("POST", "/auth/logout", {}, null)).status, 204);
+  assert.equal(
+    (await call("POST", "/auth/logout", {}, login.data.token)).status,
+    204,
+  );
+  const bearerLogout = await call("POST", "/auth/logout", {}, tokens.b);
+  assert.equal(bearerLogout.status, 204);
+  assert.match(
+    bearerLogout.headers.get("set-cookie"),
+    /Expires=Thu, 01 Jan 1970/,
+  );
+  assert.equal(
+    (await call("GET", "/auth/me", undefined, tokens.b)).status,
+    401,
+  );
+});
+
+test("B-fix 6 eventos devuelve solo el último cambio por línea, con actor y fecha", async () => {
+  for (const [id, estado] of [
+    [1, "temporal"],
+    [2, "inactiva"],
+    [1, "inactiva"],
+  ])
+    assert.equal(
+      (
+        await call(
+          "PATCH",
+          `/admin/lineas/${id}/estado`,
+          { estado },
+          tokens.admin,
+        )
+      ).status,
+      200,
+    );
+  const latest = db
+    .prepare("SELECT * FROM linea_estado_evento ORDER BY id DESC")
+    .all();
+  const response = await call(
+    "GET",
+    "/admin/lineas/eventos",
+    undefined,
+    tokens.admin,
+  );
+  assert.equal(response.status, 200);
+  assert.deepEqual(
+    response.data.eventos.map((e) => e.id),
+    [latest[0].id, latest[1].id],
+  );
+  for (const event of response.data.eventos) {
+    assert.equal(event.admin_id, 6);
+    assert.equal(event.admin_nombre, "Administrator");
+    assert.equal(event.fecha, latest.find((e) => e.id === event.id).fecha);
+    assert.ok(Number.isFinite(Date.parse(event.fecha)));
+  }
+  const filtered = await call(
+    "GET",
+    "/admin/lineas/eventos?linea_id=1",
+    undefined,
+    tokens.admin,
+  );
+  assert.deepEqual(filtered.data.eventos, [response.data.eventos[0]]);
+});
+
+test("B-fix 8 rutas administrativas sin sesión devuelven 401 y no escriben", async () => {
+  assert.equal(
+    (
+      await call(
+        "PATCH",
+        "/admin/lineas/1/estado",
+        { estado: "inactiva" },
+        null,
+      )
+    ).status,
+    401,
+  );
+  assert.equal(
+    (await call("GET", "/admin/lineas/eventos", undefined, null)).status,
+    401,
+  );
+  assert.equal(
+    db.prepare("SELECT estado FROM linea WHERE id=1").get().estado,
+    "activa",
+  );
+  assert.equal(
+    db.prepare("SELECT COUNT(*) n FROM linea_estado_evento").get().n,
+    0,
+  );
+});
+
 test("v2 preferencias valida idioma y tipos booleanos y conserva opciones no editadas", async () => {
   const initial = (await call("GET", "/auth/me")).data.usuario;
   assert.equal(initial.idioma, "es");
@@ -546,8 +700,9 @@ test("v2 estado de línea exige administrador, audita anterior/nuevo/actor y der
       .get();
     assert.equal(stored.activa, estado === "activa" ? 1 : 0);
     assert.equal(
-      (await call("GET", "/red/lineas")).data.lineas.find((l) => l.id === 1)
-        .estado,
+      (await call("GET", "/red/lineas?todas=1")).data.lineas.find(
+        (l) => l.id === 1,
+      ).estado,
       estado,
     );
   }

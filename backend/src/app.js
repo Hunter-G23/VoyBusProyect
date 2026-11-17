@@ -8,10 +8,20 @@ const { conductorService } = require("./services/conductor");
 const { favoritosService } = require("./services/favoritos");
 const { adminService } = require("./services/admin");
 const { controllers } = require("./controllers");
-const { routes } = require("./routes");
+const { routes, photoRoutes } = require("./routes");
 function createApp(db, config, now = () => new Date()) {
   const app = express();
   app.disable("x-powered-by");
+  const repo = repository(db);
+  const services = {
+    auth: authService(db, repo, config),
+    red: redService(db, repo, config, now),
+    viaje: viajeService(db, repo),
+    conductor: conductorService(db),
+    favoritos: favoritosService(db),
+    admin: adminService(db),
+  };
+  const controller = controllers(services, config);
   app.use((req, res, next) => {
     res.set({
       "X-Content-Type-Options": "nosniff",
@@ -29,13 +39,9 @@ function createApp(db, config, now = () => new Date()) {
     next();
   });
   app.use(cors({ origin: config.origins, credentials: true }));
-  const json = express.json({ limit: "16kb" });
-  const photoJson = express.json({ limit: "704kb" });
-  app.use((req, res, next) =>
-    (req.method === "PUT" && req.path === "/api/auth/me/foto"
-      ? photoJson
-      : json)(req, res, next),
-  );
+  // Only the authenticated photo route may consume a larger JSON body.
+  app.use("/api", photoRoutes(controller, repo, config));
+  app.use(express.json({ limit: "16kb" }));
   app.use((req, res, next) => {
     if (
       ["POST", "PUT", "PATCH"].includes(req.method) &&
@@ -47,16 +53,7 @@ function createApp(db, config, now = () => new Date()) {
   app.get("/api/health", (req, res) =>
     res.json({ estado: "ok", proyecto: "VoyBus" }),
   );
-  const repo = repository(db);
-  const services = {
-    auth: authService(db, repo, config),
-    red: redService(db, repo, config, now),
-    viaje: viajeService(db, repo),
-    conductor: conductorService(db),
-    favoritos: favoritosService(db),
-    admin: adminService(db),
-  };
-  app.use("/api", routes(controllers(services, config), repo, config));
+  app.use("/api", routes(controller, repo, config));
   app.use((req, res) =>
     res.status(404).json({
       error: {
