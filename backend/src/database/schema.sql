@@ -51,3 +51,4 @@ CREATE TABLE IF NOT EXISTS posicion_vehiculo (
  id INTEGER PRIMARY KEY, servicio_id INTEGER NOT NULL REFERENCES servicio(id),
  latitud REAL NOT NULL CHECK(latitud BETWEEN -90 AND 90), longitud REAL NOT NULL CHECK(longitud BETWEEN -180 AND 180), medida_en TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS posicion_vehiculo_servicio_medida ON posicion_vehiculo(servicio_id, medida_en);
