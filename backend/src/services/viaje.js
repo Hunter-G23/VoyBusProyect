@@ -2,6 +2,26 @@ const { transaction } = require("../database/db");
 const { fail, positiveId } = require("../utils/errors");
 function viajeService(db, repo) {
   return {
+    history(userId) {
+      const vinculos = db
+        .prepare(
+          `SELECT v.id,v.servicio_id,v.estado,v.inicio,v.fin,s.recorrido_id,
+        ve.codigo_vinculacion,r.nombre AS recorrido,r.sentido,l.codigo AS linea
+        FROM vinculo_viaje v JOIN servicio s ON s.id=v.servicio_id
+        JOIN vehiculo ve ON ve.id=s.vehiculo_id JOIN recorrido r ON r.id=s.recorrido_id
+        JOIN linea l ON l.id=r.linea_id WHERE v.pasajero_id=? AND v.estado='cerrado'
+        ORDER BY COALESCE(v.fin,v.inicio) DESC,v.id DESC`,
+        )
+        .all(userId);
+      const solicitudes = db
+        .prepare(
+          `SELECT s.id FROM solicitud_parada s JOIN vinculo_viaje v ON v.id=s.vinculo_id
+        WHERE v.pasajero_id=? ORDER BY s.creada_en DESC,s.id DESC`,
+        )
+        .all(userId)
+        .map((s) => repo.request(s.id, userId));
+      return { vinculos, solicitudes };
+    },
     current(userId) {
       const vinculo = repo.activeLink(userId) || null;
       const solicitud = vinculo
