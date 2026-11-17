@@ -18,8 +18,8 @@ Branch: feat/rf07-mapa, integrated in integracion/rf07-mapa. Delivery: ask-on-ri
 | ID | Specs | Route | Status | Evidence |
 | --- | --- | --- | --- | --- |
 | T0 | S3 | inline (leader): add maplibre-gl 6.19.0 and react-native-webview 14.0.1 | done | base commit |
-| B1 | S1, S2, S6, S7 | delegated: Codex gpt-6.1-sol xhigh (parallel unit, disjoint backend surface) | pending | |
-| F1 | S1, S2, S3, S6 | delegated: Codex gpt-6.1-sol high (parallel unit, disjoint front surface) | pending | |
+| B1 | S1, S2, S6, S7 | delegated: Codex gpt-6.1-sol xhigh (parallel unit, disjoint backend surface) | done, cross review pending | codex/B1 7b77742; RED 12 failing first; `npm test` 42/42 (leader re-run) |
+| F1 | S1, S2, S3, S6 | delegated: Codex gpt-6.1-sol high (parallel unit, disjoint front surface) | done, cross review pending | codex/F1 5c81b10; typecheck and build:web pass (leader re-run) |
 | S1x | all | inline (leader): integrate, e2e, docs | pending | |
 
 ## Log
