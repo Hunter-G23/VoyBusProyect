@@ -69,3 +69,22 @@ export type Inbox = {
   }[];
 };
 export type Attempt = { clave_idempotencia: string; destino_id: number };
+export type VehiclePosition = {
+  latitud: number;
+  longitud: number;
+  medida_en: string;
+  desactualizada: boolean;
+};
+export type VehicleInCirculation = {
+  servicio_id: number;
+  vehiculo: string;
+  linea: string;
+  recorrido_id: number;
+  sentido: string;
+  posicion: VehiclePosition | null;
+};
+export type VehiclesResponse = {
+  fuente: "simulacion" | "gps";
+  generado_en: string;
+  vehiculos: VehicleInCirculation[];
+};
