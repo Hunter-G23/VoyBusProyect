@@ -1,17 +1,29 @@
-const { Router } = require("express");
+const { Router, json } = require("express");
 const { authenticate, requireRole } = require("../middlewares/auth");
+function photoRoutes(controller, repo, config) {
+  const router = Router();
+  router.put(
+    "/auth/me/foto",
+    authenticate(repo, config),
+    json({ limit: "704kb" }),
+    controller.putPhoto,
+  );
+  return router;
+}
 function routes(controller, repo, config) {
   const router = Router();
   const auth = authenticate(repo, config);
   const passenger = requireRole("pasajero");
   router.post("/auth/registro", controller.register);
   router.post("/auth/login", controller.login);
-  router.post("/auth/logout", controller.logout);
+  // Logout clears even expired/missing sessions; only a valid session is revoked.
+  const optionalSession = (req, res, next) =>
+    auth(req, res, (error) => next(error?.status === 401 ? undefined : error));
+  router.post("/auth/logout", optionalSession, controller.logout);
   router.get("/auth/me", auth, controller.me);
   router.patch("/auth/me", auth, controller.updateMe);
   router.post("/auth/contrasena", auth, controller.password);
   router.get("/auth/me/foto", auth, controller.photo);
-  router.put("/auth/me/foto", auth, controller.putPhoto);
   router.delete("/auth/me/foto", auth, controller.deletePhoto);
   router.patch("/auth/me/preferencias", auth, controller.preferences);
   router.get("/favoritos", auth, passenger, controller.favorites);
@@ -46,4 +58,4 @@ function routes(controller, repo, config) {
   );
   return router;
 }
-module.exports = { routes };
+module.exports = { routes, photoRoutes };

@@ -5,8 +5,13 @@ function redService(db, repo, config, now) {
       // RF07
       const fecha = now();
       const vehiculos = repo.activeVehicles();
+      const posiciones = vehiculos.filter((v) => v.medida_en !== null);
       return {
-        fuente: vehiculos.some((v) => v.origen === "simulacion")
+        fuente: (
+          posiciones.length
+            ? posiciones.some((v) => v.origen === "simulacion")
+            : config.simularGps
+        )
           ? "simulacion"
           : "gps",
         generado_en: fecha.toISOString(),
@@ -28,10 +33,11 @@ function redService(db, repo, config, now) {
         })),
       };
     },
-    lines: () =>
+    lines: (todas = false) =>
       db
         .prepare(
-          "SELECT id,codigo,nombre,color,color_texto,electrica,estado,fuente FROM linea ORDER BY codigo",
+          `SELECT id,codigo,nombre,color,color_texto,electrica,estado,fuente FROM linea
+          ${todas ? "" : "WHERE estado='activa'"} ORDER BY codigo`,
         )
         .all(), // RF04
     routes(value) {

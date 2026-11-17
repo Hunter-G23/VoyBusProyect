@@ -57,6 +57,20 @@ afterEach(async () => {
 
 after(() => rmSync(temp, { recursive: true, force: true }));
 
+for (const simularGps of [false, true])
+  test(`B-fix 5 sin posiciones respeta SIMULAR_GPS=${simularGps}`, async () => {
+    config.simularGps = simularGps;
+    const expected = simularGps ? "simulacion" : "gps";
+    const result = await vehiculos();
+    assert.equal(result.fuente, expected);
+    assert.ok(result.vehiculos.length > 0);
+    assert.ok(result.vehiculos.every((v) => v.posicion === null));
+    db.exec("UPDATE servicio SET estado='finalizado'");
+    const empty = await vehiculos();
+    assert.equal(empty.fuente, expected);
+    assert.deepEqual(empty.vehiculos, []);
+  });
+
 test("RF07 devuelve la última muestra fresca y el contrato público sin datos personales", async () => {
   muestra(1, "2026-11-17T11:59:55.000Z", -23.635, -70.385);
   muestra(1, "2026-11-17T11:59:00.000Z");
@@ -146,7 +160,7 @@ test("RF07 crear la aplicación no inicia el simulador en pruebas", async (t) =>
     db.prepare("SELECT COUNT(*) n FROM posicion_vehiculo").get().n,
     0,
   );
-  assert.equal((await vehiculos()).fuente, "gps");
+  assert.equal((await vehiculos()).fuente, "simulacion");
 });
 
 test("RF07 un paso del simulador persiste una muestra válida por servicio activo", async () => {

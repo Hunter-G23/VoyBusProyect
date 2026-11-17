@@ -96,6 +96,11 @@ function authService(db, repo, config) {
         fail(401, "CREDENCIALES_INVALIDAS", "Correo o contraseña incorrectos.");
       return session(user.id);
     },
+    logout(id) {
+      db.prepare(
+        "UPDATE usuario SET sesion_version=sesion_version+1 WHERE id=?",
+      ).run(id);
+    },
     update(id, body) {
       const errors = {};
       const nombre = validateName(body.nombre, errors);
@@ -114,7 +119,7 @@ function authService(db, repo, config) {
         ))
       )
         fail(
-          401,
+          403,
           "CONTRASENA_INCORRECTA",
           "La contraseña actual no es correcta.",
         );

@@ -35,6 +35,9 @@ function adminService(db) {
           .get(id);
       });
     },
+    // GET /api/admin/lineas/eventos: latest change per line, NOT full history.
+    // Optional linea_id narrows to that line's latest change (zero or one).
+    // admin_id/admin_nombre and fecha identify who made the last change and when.
     events(value) {
       const sql = `SELECT e.id,e.linea_id,e.estado_anterior,e.estado_nuevo,e.admin_id,e.fecha,u.nombre AS admin_nombre
         FROM linea_estado_evento e JOIN usuario u ON u.id=e.admin_id`;
