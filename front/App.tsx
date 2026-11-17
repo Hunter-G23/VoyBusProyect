@@ -14,12 +14,13 @@ import { session } from "./src/storage";
 import type { User } from "./src/types";
 import { Auth } from "./src/Auth";
 import { Catalog } from "./src/Catalog";
+import { VehicleMap } from "./src/VehicleMap";
 import { Trip } from "./src/Trip";
 import { Driver } from "./src/Driver";
 import { colors, Icon, Loading, Notice, styles } from "./src/ui";
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [tab, setTab] = useState<"catalog" | "trip">("catalog");
+  const [tab, setTab] = useState<"catalog" | "trip" | "map">("catalog");
   const [auth, setAuth] = useState(false);
   const [boot, setBoot] = useState(true);
   const [error, setError] = useState("");
@@ -145,6 +146,8 @@ export default function App() {
               <Driver />
             ) : tab === "catalog" ? (
               <Catalog onTrip={() => setTab("trip")} />
+            ) : tab === "map" ? (
+              <VehicleMap />
             ) : (
               <Trip user={user} onLogin={() => setAuth(true)} />
             )}
@@ -164,6 +167,7 @@ export default function App() {
               [
                 { key: "catalog", label: "Recorridos", icon: "map-outline" },
                 { key: "trip", label: "Mi viaje", icon: "ticket-outline" },
+                { key: "map", label: "Mapa", icon: "navigate-outline" },
               ] as const
             ).map((item) => (
               <Pressable
