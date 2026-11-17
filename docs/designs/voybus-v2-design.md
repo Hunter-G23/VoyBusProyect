@@ -87,13 +87,14 @@ Los contratos existentes no se rompen: los cambios solo agregan campos opcionale
 
 | Método y ruta | Acceso | Respuesta o efecto |
 | --- | --- | --- |
-| `GET /api/red/lineas` | pública | Agrega `color`, `color_texto`, `electrica`, `estado`. El orden pasa a ser por código. |
+| `GET /api/red/lineas` | pública | Agrega `color`, `color_texto`, `electrica`, `estado`. El orden pasa a ser por código. Por defecto mantiene el contrato anterior y devuelve solo las líneas activas. Con `?todas=1` devuelve todas con su estado; es lo que usa la pestaña Líneas. |
 | `GET /api/red/vehiculos` | pública | Sin cambio de forma. `fuente` se calcula desde `posicion_vehiculo.origen`. |
 | `GET /api/favoritos` | pasajero | `{ favoritos: [{ id, linea, recorrido \| null, creado_en }] }` |
 | `POST /api/favoritos` | pasajero | Body `{ linea_id, recorrido_id? }`. Idempotente: un duplicado devuelve el favorito existente. |
 | `DELETE /api/favoritos/:id` | pasajero | Solo los favoritos propios; uno ajeno devuelve 404. |
 | `PATCH /api/auth/me` | sesión | Body `{ nombre }`, con la validación de RF01. El correo y el rol no se editan. |
-| `POST /api/auth/contrasena` | sesión | Body `{ actual, nueva, confirmacion }`. Verifica la contraseña actual con bcrypt y aplica las reglas de RF01. Ver 9 (R2). |
+| `POST /api/auth/contrasena` | sesión | Body `{ actual, nueva, confirmacion }`. Verifica la contraseña actual con bcrypt y aplica las reglas de RF01. Si la contraseña actual es incorrecta responde 403 con el código `CONTRASENA_INCORRECTA`, no 401, porque el cliente trata cualquier 401 como sesión vencida. Ver 9 (R2). |
+| `POST /api/auth/logout` | sesión | Además de borrar la cookie, incrementa `sesion_version`, de modo que un token copiado deja de valer. |
 | `GET /api/viaje/historial` | pasajero | Vínculos cerrados y solicitudes propias, ordenados por fecha, sin datos de otros usuarios. |
 | `PUT /api/auth/me/foto` | sesión | Body JSON `{ tipo, datos_base64 }` con un máximo de 512 KB decodificados. Se valida el tipo por sus bytes iniciales (firmas JPEG y PNG), no por la extensión. No se agrega ninguna dependencia de servidor. |
 | `DELETE /api/auth/me/foto` | sesión | Vuelve al avatar genérico. |
