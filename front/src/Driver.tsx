@@ -1,123 +1,42 @@
-import React from "react";
-import { Text, View } from "react-native";
-import { useResource } from "./useResource";
-import type { Inbox } from "./types";
-import { Button, colors, Empty, Icon, Loading, Notice, styles } from "./ui";
+﻿import React from 'react';
+import { Text, View } from 'react-native';
+import { useResource } from './useResource';
+import type { Inbox } from './types';
+import { Button, Empty, Icon, Loading, Notice, useStyles } from './ui';
+import { useTheme } from './theme';
+import { useLanguage } from './i18n';
+import './i18n/driver';
 export function Driver() {
-  const inbox = useResource<Inbox>("/conductor/servicio/solicitudes", true);
-  const service = inbox.data?.servicio;
-  return (
-    <View style={styles.page}>
-      <View style={{ gap: 10 }}>
-        <Text style={styles.title}>Solicitudes de parada</Text>
-        <Text style={styles.subtitle}>
-          Consulta esta bandeja con el vehículo detenido.
-        </Text>
-      </View>
-      {inbox.loading && !inbox.data && <Loading />}
-      {!!inbox.error && (
-        <Notice
-          message={inbox.error}
-          retry={() => void inbox.reload()}
-          stale={!!inbox.data}
-        />
-      )}
-      {service && (
-        <View style={[styles.panel, { backgroundColor: colors.ink }]}>
-          <View style={styles.row}>
-            <Icon name="bus-outline" color={colors.yellow} size={30} />
-            <Text
-              style={{ fontSize: 26, fontWeight: "700", color: colors.paper }}
-            >
-              {service.codigo_vinculacion}
-            </Text>
-          </View>
-          <Text style={{ fontSize: 17, color: colors.paper }}>
-            {service.linea} · {service.sentido}
-          </Text>
-          <Text style={{ fontSize: 15, color: colors.onDark }}>
-            {service.recorrido} · {service.patente}
-          </Text>
-        </View>
-      )}
-      {inbox.data && !service && (
-        <Empty
-          title="Sin servicio asignado"
-          text="Tu cuenta no tiene un servicio activo. No se mostrarán solicitudes de otros vehículos."
-        />
-      )}
-      {service && (
-        <>
-          <View style={styles.row}>
-            <Text style={[styles.section, styles.grow]}>Próximos destinos</Text>
-            <Text style={styles.small}>
-              {inbox.data?.solicitudes.length} solicitudes
-            </Text>
-          </View>
-          {!inbox.data?.paraderos.length ? (
-            <Empty
-              title="Aún no hay solicitudes"
-              text="Las solicitudes de tus pasajeros aparecerán aquí al ser guardadas por el servidor."
-            />
-          ) : (
-            <View style={styles.list}>
-              {inbox.data.paraderos.map((stop) => (
-                <View key={stop.destino_id} style={styles.listRow}>
-                  <Icon name="location-outline" color={colors.green} />
-                  <View style={styles.grow}>
-                    <Text style={[styles.body, { fontWeight: "700" }]}>
-                      {stop.nombre}
-                    </Text>
-                    <Text style={styles.small}>
-                      {stop.codigo} · Paradero {stop.posicion}
-                    </Text>
-                  </View>
-                  <Text
-                    style={{
-                      fontSize: 28,
-                      fontWeight: "700",
-                      color: colors.green,
-                    }}
-                    accessibilityLabel={`${stop.cantidad} solicitudes`}
-                  >
-                    {stop.cantidad}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-          {!!inbox.data?.solicitudes.length && (
-            <View style={{ gap: 8 }}>
-              <Text style={styles.section}>Comprobantes recibidos</Text>
-              {inbox.data.solicitudes.map((item) => (
-                <View key={item.id} style={styles.listRow}>
-                  <Text style={styles.code}>#{item.id}</Text>
-                  <View style={styles.grow}>
-                    <Text style={styles.body}>{item.paradero}</Text>
-                    <Text style={styles.small}>
-                      {item.estado === "pendiente" ? "Pendiente" : "Reconocida"}{" "}
-                      · {new Date(item.creada_en).toLocaleTimeString("es-CL")}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-          <Button
-            title="Actualizar bandeja"
-            onPress={() => void inbox.reload()}
-            busy={inbox.loading}
-            secondary
-          />
-          <Text style={styles.small}>
-            {inbox.updated
-              ? `Última consulta: ${inbox.updated.toLocaleTimeString("es-CL")}. `
-              : ""}
-            Se actualiza cada 5 segundos mientras está abierta. Consultar no
-            reconoce ni atiende solicitudes.
-          </Text>
-        </>
-      )}
-    </View>
-  );
+  const theme = useTheme(); const styles = useStyles(); const { t, language } = useLanguage();
+  const inbox = useResource<Inbox>('/conductor/servicio/solicitudes', true); const service = inbox.data?.servicio;
+  const count = (count: number) => t(count === 1 ? 'driver.one' : 'driver.many', { count });
+  const time = (value: string | Date) => { const date = new Date(value); return Number.isFinite(date.getTime()) ? date.toLocaleTimeString(language === 'es' ? 'es-CL' : 'en-GB') : t('driver.invalidTime'); };
+  return <View style={styles.page}>
+    <Text accessibilityRole="header" style={styles.title}>{t('driver.title')}</Text><Text style={styles.subtitle}>{t('driver.intro')}</Text>
+    {inbox.loading && !inbox.data && !inbox.error && <Loading />}
+    {!!inbox.error && <Notice message={inbox.error} retry={() => void inbox.reload()} stale={!!inbox.data} />}
+    {service && <View style={[styles.panel, { borderWidth: 2, borderColor: theme.border }]}>
+      <Icon name="bus-outline" color={theme.action} size={30} /><Text style={styles.section}>{service.codigo_vinculacion}</Text>
+      <Text style={styles.body}>{t('driver.service', { line: service.linea, direction: service.sentido })}</Text>
+      <Text style={styles.small}>{t('driver.details', { route: service.recorrido, plate: service.patente })}</Text>
+    </View>}
+    {inbox.data && !service && <Empty title={t('driver.noService')} text={t('driver.noServiceHelp')} />}
+    {service && <>
+      <Text accessibilityRole="header" style={styles.section}>{t('driver.next')}</Text><Text style={styles.small}>{count(inbox.data?.solicitudes.length ?? 0)}</Text>
+      {!inbox.data?.paraderos.length ? <Empty title={t('driver.empty')} text={t('driver.emptyHelp')} /> : <View style={styles.list}>
+        {inbox.data.paraderos.map(stop => <View key={stop.destino_id} style={styles.listRow}>
+          <Icon name="location-outline" color={theme.action} /><View style={styles.grow}><Text style={styles.label}>{stop.nombre}</Text><Text style={styles.small}>{t('driver.stop', { code: stop.codigo, position: stop.posicion })}</Text><Text style={styles.body}>{count(stop.cantidad)}</Text></View>
+        </View>)}
+      </View>}
+      {!!inbox.data?.solicitudes.length && <View style={{ gap: 8 }}>
+        <Text accessibilityRole="header" style={styles.section}>{t('driver.receipts')}</Text>
+        {inbox.data.solicitudes.map(item => <View key={item.id} style={styles.listRow}>
+          <Text style={styles.label}>{t('driver.request', { id: item.id })}</Text><View style={styles.grow}><Text style={styles.body}>{item.paradero}</Text><Text style={styles.small}>{t(item.estado === 'pendiente' ? 'driver.pending' : 'driver.acknowledged')} · {time(item.creada_en)}</Text></View>
+        </View>)}
+      </View>}
+      <Button title={t('driver.refresh')} onPress={() => void inbox.reload()} busy={inbox.loading} secondary />
+      {inbox.updated && <Text style={styles.small}>{t('driver.updated', { time: time(inbox.updated) })}</Text>}
+      <Text style={styles.small}>{t('driver.polling')}</Text>
+    </>}
+  </View>;
 }

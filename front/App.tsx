@@ -8,10 +8,10 @@ import { Barlow_400Regular, Barlow_500Medium, Barlow_600SemiBold, Barlow_700Bold
 import { BarlowCondensed_600SemiBold, BarlowCondensed_700Bold, BarlowCondensed_800ExtraBold } from "@expo-google-fonts/barlow-condensed";
 import { API_URL, api, setSessionExpired } from "./src/api";
 import { session } from "./src/storage";
-import type { User } from "./src/types";
+import type { Line, User } from "./src/types";
 import { Auth } from "./src/Auth";
 import { Lines } from "./src/Lines";
-import { Favorites } from "./src/Favorites";
+import { Favorites } from "./src/FavoritesScreen";
 import { Profile } from "./src/Profile";
 import { AdminLines } from "./src/AdminLines";
 import { VehicleMap } from "./src/VehicleMap";
@@ -85,6 +85,7 @@ function Shell({ user, setUser, tab, setTab, screen, setScreen, auth, setAuth, b
   const { notification, dismiss } = useInAppNotice();
   const [photoHeaders, setPhotoHeaders] = useState<Record<string, string> | undefined>();
   const [photoReady, setPhotoReady] = useState(false);
+  const [selectedLine, setSelectedLine] = useState<Line | null>(null);
   useEffect(() => {
     let mounted = true;
     setPhotoReady(false);
@@ -105,13 +106,13 @@ function Shell({ user, setUser, tab, setTab, screen, setScreen, auth, setAuth, b
     <View style={{ flex: 1, width: "100%", maxWidth: 860, alignSelf: "center" }}>
       <View style={{ paddingHorizontal: 20, paddingVertical: 12, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
         <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 9, minWidth: 120 }}>
-          <View style={{ width: 34, height: 34, borderRadius: 7, backgroundColor: light.ink, alignItems: "center", justifyContent: "center",
+          <View style={{ width: 34, height: 34, borderRadius: 7, backgroundColor: theme.plate, alignItems: "center", justifyContent: "center",
             borderWidth: theme.scheme === "dark" ? 2 : 0, borderColor: theme.border }}>
             <Icon name="bus-outline" color={theme.signal} size={23} />
           </View>
           <Text style={{ fontFamily: theme.fonts.display, fontSize: 30, fontWeight: theme.fonts.display ? undefined : "800", color: theme.ink, letterSpacing: -0.4 }}>VoyBus</Text>
         </View>
-        {user ? <Avatar photoUrl={photoReady ? `${API_URL}/auth/me/foto` : null} headers={photoHeaders}
+        {user ? <Avatar photoUrl={photoReady && user.tiene_foto ? `${API_URL}/auth/me/foto` : null} headers={photoHeaders}
           label={`${t("common.profile")}: ${user.nombre}`} onPress={() => { setAuth(false); setScreen("profile"); }} />
           : <HeaderButton title={t("common.login")} onPress={login} />}
       </View>
@@ -137,8 +138,8 @@ function Shell({ user, setUser, tab, setTab, screen, setScreen, auth, setAuth, b
                 {user?.rol === "administrador" && <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
                   <HeaderButton title={t("common.adminLines")} onPress={() => setScreen("admin")} />
                 </View>}
-                {tab === "lines" ? <Lines onTrip={() => goTab("trip")} /> : tab === "map" ? <VehicleMap />
-                  : tab === "favorites" ? <Favorites user={user} onLogin={login} onLines={() => goTab("lines")} />
+                {tab === "lines" ? <Lines selectedLine={selectedLine} user={user} onLogin={login} onTrip={() => goTab("trip")} /> : tab === "map" ? <VehicleMap />
+                  : tab === "favorites" ? <Favorites user={user} onLogin={login} onLines={() => { setSelectedLine(null); goTab("lines"); }} onOpenLine={(line) => { setSelectedLine(line); goTab("lines"); }} />
                     : <Trip user={user} onLogin={login} />}
               </>}
           </ScreenFade>
@@ -176,16 +177,16 @@ function TabBar({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) => void }) {
     style={{ flexDirection: "row", backgroundColor: theme.paper, borderTopWidth: 1, borderTopColor: theme.border }}>
     {width > 0 && <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden
       style={{ position: "absolute", top: 4, bottom: 4, left: 0, width: width / 4, borderRadius: 10,
-        backgroundColor: light.ink, borderWidth: theme.scheme === "dark" ? 2 : 0, borderColor: theme.border, transform: [{ translateX: x }], opacity }}>
+        backgroundColor: theme.plate, borderWidth: theme.scheme === "dark" ? 2 : 0, borderColor: theme.border, transform: [{ translateX: x }], opacity }}>
       <View style={{ position: "absolute", bottom: 5, width: 22, height: 4, borderRadius: 2, backgroundColor: theme.signal, alignSelf: "center" }} />
     </Animated.View>}
     {tabs.map((item) => <Pressable key={item.key} accessibilityRole="tab" accessibilityLabel={t(`common.tabs.${item.key}`)}
       accessibilityState={{ selected: tab === item.key }} aria-selected={tab === item.key} onPress={() => onChange(item.key)}
       style={({ focused, pressed }: PressState) => [{ flex: 1, minWidth: 48, minHeight: 76, paddingHorizontal: 2, paddingTop: 12, paddingBottom: 18,
         alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 10, opacity: pressed ? 0.8 : 1 }, focusRing(focused, theme.action)]}>
-      <Icon name={item.icon} color={tab === item.key ? "#F7F7F0" : theme.muted} size={22} />
+      <Icon name={item.icon} color={tab === item.key ? theme.onPlate : theme.muted} size={22} />
       <Text style={{ fontFamily: tab === item.key ? theme.fonts.bold : theme.fonts.semibold, fontSize: 14, textAlign: "center", alignSelf: "stretch",
-        color: tab === item.key ? "#F7F7F0" : theme.muted }}>{t(`common.tabs.${item.key}`)}</Text>
+        color: tab === item.key ? theme.onPlate : theme.muted }}>{t(`common.tabs.${item.key}`)}</Text>
     </Pressable>)}
   </View>;
 }

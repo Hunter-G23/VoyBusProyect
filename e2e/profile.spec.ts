@@ -1,0 +1,60 @@
+import { test, expect } from '@playwright/test';
+import { login } from './helpers';
+test('profile edits name and persists language/theme; wrong password keeps session', async ({ page }) => {
+  await page.goto('/'); await login(page);
+  await page.getByRole('button', { name: /^Perfil:/ }).click();
+  await page.getByRole('button', { name: 'Mi perfil', exact: true }).click();
+  await page.getByLabel('Nombre', { exact: true }).fill('Pasajero Perfil');
+  await page.getByRole('button', { name: 'Guardar nombre', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Pasajero Perfil', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Seguridad', exact: true }).click();
+  await page.getByLabel('Contraseña actual', { exact: true }).fill('incorrecta');
+  await page.getByLabel('Nueva contraseña', { exact: true }).fill('VoyBusNueva2026!');
+  await page.getByLabel('Confirmar nueva contraseña', { exact: true }).fill('VoyBusNueva2026!');
+  await page.getByRole('button', { name: 'Cambiar contraseña', exact: true }).click();
+  await expect(page.getByText('La contraseña actual no es correcta.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Perfil:/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Preferencias', exact: true }).click();
+  await page.getByRole('radio', { name: 'Oscuro', exact: true }).click();
+  await page.getByRole('radio', { name: 'English', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Preferences', exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: /^Profile:/ }).click();
+  await page.getByRole('button', { name: 'Preferences', exact: true }).click();
+  await expect(page.getByRole('radio', { name: 'Dark', exact: true })).toBeChecked();
+  await page.getByRole('radio', { name: 'Español', exact: true }).click();
+  await page.getByRole('radio', { name: 'Sistema', exact: true }).click();
+});
+
+test('password change renews this session and closes another session', async ({ page, playwright }, info) => {
+  const email = `security-${info.project.name}-${Date.now()}@example.test`;
+  const oldPassword = 'VoyBusDemo2026!'; const newPassword = 'VoyBusNueva2026!';
+  await page.request.post('http://localhost:3001/api/auth/registro', { data: { nombre: 'Pasajero Seguridad', correo: email, contrasena: oldPassword, confirmacion: oldPassword } });
+  const other = await playwright.request.newContext({ baseURL: 'http://localhost:3001/api/' });
+  await other.post('auth/login', { data: { correo: email, contrasena: oldPassword } });
+  await page.goto('/'); await login(page, email, oldPassword);
+  await page.getByRole('button', { name: /^Perfil:/ }).click();
+  await page.getByRole('button', { name: 'Seguridad', exact: true }).click();
+  await page.getByLabel('Contraseña actual', { exact: true }).fill(oldPassword);
+  await page.getByLabel('Nueva contraseña', { exact: true }).fill(newPassword);
+  await page.getByLabel('Confirmar nueva contraseña', { exact: true }).fill(newPassword);
+  await page.getByRole('button', { name: 'Cambiar contraseña', exact: true }).click();
+  await expect(page.getByText('Contraseña actualizada. Las demás sesiones se cerraron.', { exact: true })).toBeVisible();
+  expect((await page.request.get('http://localhost:3001/api/auth/me')).status()).toBe(200);
+  expect((await other.get('auth/me')).status()).toBe(401);
+  await other.dispose();
+});
+
+test('profile accepts a square photo and removes it', async ({ page }) => {
+  await page.goto('/'); await login(page);
+  await page.getByRole('button', { name: /^Perfil:/ }).click();
+  await page.getByRole('button', { name: 'Mi perfil', exact: true }).click();
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Cambiar foto', exact: true }).click();
+  const upload = page.waitForResponse(response => response.url().includes('/auth/me/foto') && response.request().method() === 'PUT');
+  await (await chooser).setFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aFqkAAAAASUVORK5CYII=', 'base64') });
+  expect((await upload).status()).toBe(200);
+  await expect(page.getByText('Cambios guardados.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Quitar foto', exact: true }).click();
+  await expect.poll(async () => (await page.request.get('http://localhost:3001/api/auth/me/foto')).status()).toBe(404);
+});

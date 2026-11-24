@@ -30,6 +30,41 @@ export const styles = StyleSheet.create({
   code: { backgroundColor: colors.ink, color: "#FFFFFF", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 6, fontWeight: "700", fontSize: 24, overflow: "hidden" },
 });
 export type IconName = React.ComponentProps<typeof Ionicons>["name"];
+export function useStyles() {
+  const theme = useTheme();
+  return {
+    ...styles,
+    page: { ...styles.page, minWidth: 0, paddingHorizontal: 16 },
+    title: { ...styles.title, color: theme.ink, fontFamily: theme.fonts.display },
+    section: { ...styles.section, color: theme.ink, fontFamily: theme.fonts.heading, flexShrink: 1 },
+    body: { ...styles.body, color: theme.ink, fontFamily: theme.fonts.body },
+    subtitle: { ...styles.subtitle, color: theme.muted, fontFamily: theme.fonts.body },
+    small: { ...styles.small, color: theme.muted, fontFamily: theme.fonts.body },
+    label: { ...styles.label, color: theme.ink, fontFamily: theme.fonts.semibold },
+    row: { ...styles.row, flexWrap: "wrap" as const },
+    grow: { flex: 1, minWidth: 0 },
+    list: { ...styles.list, borderTopColor: theme.border },
+    listRow: { ...styles.listRow, minWidth: 48, borderBottomColor: theme.border },
+    panel: { ...styles.panel, padding: 16, backgroundColor: theme.paper },
+  };
+}
+export function Segmented<T extends string | number>({ label, options, value, onChange, disabled = false }: {
+  label: string; options: { value: T; label: string }[]; value: T; onChange: (value: T) => void; disabled?: boolean;
+}) {
+  const theme = useTheme();
+  return <View accessibilityRole="radiogroup" accessibilityLabel={label} style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+    {options.map((option) => <ScalePressable key={option.value} accessibilityRole="radio"
+      accessibilityLabel={option.label} accessibilityState={{ checked: option.value === value, disabled }}
+      disabled={disabled} onPress={() => onChange(option.value)}
+      style={({ focused, pressed }: PressState) => [{ minHeight: 48, minWidth: 48, padding: 10, borderRadius: 6,
+        borderWidth: 2, borderColor: option.value === value ? theme.action : theme.border,
+        backgroundColor: option.value === value ? theme.action : pressed ? theme.surface : theme.paper,
+        flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%" }, focusRing(focused, theme.action)]}>
+      <Icon name={option.value === value ? "radio-button-on" : "radio-button-off"} size={18} color={option.value === value ? theme.onAction : theme.ink} />
+      <Text style={{ color: option.value === value ? theme.onAction : theme.ink, fontFamily: theme.fonts.semibold, fontSize: 16, flexShrink: 1 }}>{option.label}</Text>
+    </ScalePressable>)}
+  </View>;
+}
 export function Icon({ name, size = 23, color }: { name: IconName; size?: number; color?: string }) {
   const theme = useTheme();
   return <Ionicons name={name} size={size} color={color ?? theme.ink}
@@ -39,12 +74,13 @@ export function Icon({ name, size = 23, color }: { name: IconName; size?: number
 export type ButtonProps = {
   title: string; onPress: () => void; busy?: boolean; disabled?: boolean; secondary?: boolean;
   accessibilityLabel?: string; style?: StyleProp<ViewStyle>;
+  expanded?: boolean;
 };
-export function Button({ title, onPress, busy = false, disabled = false, secondary = false, accessibilityLabel, style }: ButtonProps) {
+export function Button({ title, onPress, busy = false, disabled = false, secondary = false, accessibilityLabel, style, expanded }: ButtonProps) {
   const theme = useTheme();
   const reduced = useReducedMotion();
   return <ScalePressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title}
-    accessibilityState={{ disabled: disabled || busy, busy }} disabled={disabled || busy} onPress={onPress}
+    accessibilityState={{ disabled: disabled || busy, busy, expanded }} disabled={disabled || busy} onPress={onPress}
     style={({ pressed, focused, hovered }: PressState) => [{
       minHeight: secondary ? 56 : 66, minWidth: 48, paddingHorizontal: 20, paddingVertical: 12,
       borderRadius: 12, borderWidth: 2,
@@ -102,7 +138,7 @@ export function Notice({ message, retry, stale = false, kind }: { message: strin
   const theme = useTheme();
   const { t } = useLanguage();
   const type = kind ?? (stale ? "stale" : "error");
-  const color = type === "error" ? theme.error : type === "simulated" ? light.ink : theme.ink;
+  const color = type === "error" ? theme.error : type === "simulated" ? theme.signalInk : theme.ink;
   const icons: Record<NoticeKind, IconName> = { error: "alert-circle-outline", stale: "time-outline", info: "information-circle-outline", simulated: "navigate-outline" };
   return <View accessibilityRole={type === "error" ? "alert" : undefined} accessibilityLiveRegion="polite"
     style={{ gap: 10, padding: 12, borderRadius: 8, backgroundColor: type === "simulated" ? theme.signal : theme.surface }}>
@@ -159,26 +195,26 @@ export function LinePlate({ line, onPress, subtitle }: { line: Line; onPress?: (
   const { t } = useLanguage();
   const base = line.codigo.replace(/(?:N|Y\d+)$/, "");
   const official = lineColors[base];
-  const background = official?.background ?? (line.color && /^#[0-9a-f]{6}$/i.test(line.color) ? line.color : light.ink);
-  const numberColor = official?.text ?? (line.color_texto && /^#[0-9a-f]{6}$/i.test(line.color_texto) ? line.color_texto : "#FFFFFF");
+  const background = line.color && /^#[0-9a-f]{6}$/i.test(line.color) ? line.color : official?.background ?? light.ink;
+  const numberColor = line.color_texto && /^#[0-9a-f]{6}$/i.test(line.color_texto) ? line.color_texto : official?.text ?? light.paper;
   const electric = !!line.electrica || base === "E01";
   const content = <>
     <View style={{ minWidth: 78, minHeight: 64, borderRadius: 6, backgroundColor: background,
-      borderWidth: theme.scheme === "dark" ? 2 : 0, borderColor: "#8FA79D", justifyContent: "center", alignItems: "center", paddingHorizontal: 8 }}>
+      borderWidth: theme.scheme === "dark" ? 2 : 0, borderColor: theme.border, justifyContent: "center", alignItems: "center", paddingHorizontal: 8 }}>
       <Text style={{ fontFamily: theme.fonts.display, fontSize: 36, fontWeight: theme.fonts.display ? undefined : "800", color: numberColor }}>{line.codigo}</Text>
     </View>
     <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-      <Text style={{ fontFamily: theme.fonts.heading, fontSize: 28, color: "#F7F7F0" }}>{line.nombre}</Text>
-      {!!subtitle && <Text style={{ fontFamily: theme.fonts.body, fontSize: 15, color: "#D6E8DE" }}>{subtitle}</Text>}
+      <Text style={{ fontFamily: theme.fonts.heading, fontSize: 28, color: theme.onPlate }}>{line.nombre}</Text>
+      {!!subtitle && <Text style={{ fontFamily: theme.fonts.body, fontSize: 15, color: theme.plateMuted }}>{subtitle}</Text>}
       {electric && <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
         <Icon name="flash" size={18} color={theme.signal} />
-        <Text style={{ color: "#F7F7F0", fontFamily: theme.fonts.semibold, fontSize: 15 }}>{t("common.electric")}</Text>
+        <Text style={{ color: theme.onPlate, fontFamily: theme.fonts.semibold, fontSize: 15 }}>{t("common.electric")}</Text>
       </View>}
     </View>
-    {!!onPress && <Icon name="chevron-forward" color="#F7F7F0" />}
+    {!!onPress && <Icon name="chevron-forward" color={theme.onPlate} />}
   </>;
   const plate: ViewStyle = { minHeight: 100, minWidth: 48, padding: 14, gap: 16, flexDirection: "row", flexWrap: "wrap", alignItems: "center",
-    backgroundColor: light.ink, borderRadius: 10, borderWidth: 2, borderColor: theme.scheme === "dark" ? "#8FA79D" : light.ink };
+    backgroundColor: theme.plate, borderRadius: 10, borderWidth: 2, borderColor: theme.scheme === "dark" ? theme.border : theme.plate };
   return onPress ? <ScalePressable accessibilityRole="button" accessibilityLabel={`${line.codigo}, ${line.nombre}${electric ? `, ${t("common.electric")}` : ""}`}
     accessibilityState={{ disabled: false }} onPress={onPress}
     style={({ focused, pressed }: PressState) => [plate, { opacity: pressed ? 0.9 : 1 }, focusRing(focused, theme.action)]}>{content}</ScalePressable>
@@ -189,7 +225,7 @@ export function StatusChip({ status }: { status: LineStatus }) {
   const theme = useTheme();
   const { t } = useLanguage();
   const background = status === "activa" ? theme.action : status === "inactiva" ? theme.error : theme.signal;
-  const color = status === "temporal" ? light.ink : theme.onAction;
+  const color = status === "temporal" ? theme.signalInk : theme.onAction;
   const label = t(`common.${status === "activa" ? "active" : status === "inactiva" ? "inactive" : "temporary"}`);
   return <View accessible accessibilityRole="text" accessibilityLabel={label}
     style={{ alignSelf: "flex-start", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: background }}>
@@ -249,11 +285,11 @@ export function Avatar({ photoUrl, headers, onPress, label, size = 48 }: {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [photoUrl, headers]);
   const diameter = Math.max(48, size);
-  const shape: ViewStyle = { width: diameter, height: diameter, borderRadius: diameter / 2, alignItems: "center", justifyContent: "center", backgroundColor: light.ink, borderWidth: 2, borderColor: theme.border };
+  const shape: ViewStyle = { width: diameter, height: diameter, borderRadius: diameter / 2, alignItems: "center", justifyContent: "center", backgroundColor: theme.plate, borderWidth: 2, borderColor: theme.border };
   const content = photoUrl && !failed
     ? <Image source={{ uri: photoUrl, headers }} onError={() => setFailed(true)} accessible={false} aria-hidden
         style={{ width: diameter - 4, height: diameter - 4, borderRadius: diameter / 2 }} />
-    : <Icon name="person" color="#F7F7F0" size={diameter * 0.55} />;
+    : <Icon name="person" color={theme.onPlate} size={diameter * 0.55} />;
   return onPress ? <ScalePressable accessibilityRole="button" accessibilityLabel={label ?? t("common.profile")}
     accessibilityState={{ disabled: false }} onPress={onPress} style={({ focused, pressed }: PressState) => [shape, { opacity: pressed ? 0.85 : 1 }, focusRing(focused, theme.action)]}>{content}</ScalePressable>
     : <View accessible accessibilityRole="image" accessibilityLabel={label ?? t("common.profile")} style={shape}>{content}</View>;
