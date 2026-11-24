@@ -3,7 +3,7 @@ import { Platform, Text, View } from 'react-native';
 import type { NotificationType, TripHistoryResponse, User } from './types';
 import { API_URL, api, apiJson, ApiError } from './api';
 import { session } from './storage';
-import { Avatar, Back, Button, Empty, Field, Loading, Notice, Segmented, useStyles } from './ui';
+import { Avatar, Back, Button, Empty, Field, Loading, MenuRow, Notice, Segmented, useStyles } from './ui';
 import { useTheme } from './theme';
 import { useLanguage } from './i18n';
 import './i18n/profile';
@@ -54,10 +54,12 @@ export function Profile({ user, onUserChange, onLogout, onBack, onFavorites }: P
       <Text style={styles.small}>{t(`common.${user.rol === 'conductor' ? 'driver' : user.rol === 'administrador' ? 'administrator' : 'passenger'}`)}</Text>
     </View>
     <View style={{ gap: 8 }}>
-      <Button title={t('profile.edit')} expanded={section === 'edit'} secondary onPress={() => select('edit')} />
-      {onFavorites && <Button title={t('profile.favorites')} onPress={onFavorites} secondary />}
-      {user.rol === 'pasajero' && <Button title={t('profile.history')} expanded={section === 'history'} secondary onPress={() => select('history')} />}
-      {(['preferences', 'privacy', 'security'] as const).map(value => <Button key={value} title={t(`profile.${value}`)} expanded={section === value} secondary onPress={() => select(value)} />)}
+      <MenuRow title={t('profile.edit')} icon="person-outline" expanded={section === 'edit'} onPress={() => select('edit')} />
+      {onFavorites && <MenuRow title={t('profile.favorites')} icon="heart-outline" onPress={onFavorites} />}
+      {user.rol === 'pasajero' && <MenuRow title={t('profile.history')} icon="time-outline" expanded={section === 'history'} onPress={() => select('history')} />}
+      {([
+        ['preferences', 'settings-outline'], ['privacy', 'shield-checkmark-outline'], ['security', 'lock-closed-outline'],
+      ] as const).map(([value, icon]) => <MenuRow key={value} title={t(`profile.${value}`)} icon={icon} expanded={section === value} onPress={() => select(value)} />)}
     </View>
     {!!error && <Notice message={error} />}
     {!!success && <Notice kind="info" message={success} />}

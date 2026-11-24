@@ -100,7 +100,7 @@ function Shell({ user, setUser, tab, setTab, screen, setScreen, auth, setAuth, b
   const viewKey = `${auth ? "auth" : screen !== "main" ? screen : user?.rol === "conductor" ? "driver" : tab}-${user?.id ?? "public"}`;
   const login = () => { setScreen("main"); setAuth(true); };
   const goTab = (value: Tab) => { setScreen("main"); setTab(value); };
-  const preferenceError = language.error || notifications.error || (theme.error ? t("common.storageError") : "");
+  const preferenceError = language.error || notifications.error || (theme.storageError ? t("common.storageError") : "");
   return <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
     <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
     <View style={{ flex: 1, width: "100%", maxWidth: 860, alignSelf: "center" }}>

@@ -27,7 +27,7 @@ export function MapCanvas({ vehicles }: { vehicles: VehicleInCirculation[] }) {
     const timeout = setTimeout(() => { if (!loaded) { setLoading(false); setError(failure); } }, 15000);
     try {
       setWorkerUrl(new URL('/maplibre-gl-worker-6.19.0.mjs', window.location.origin).href);
-      instance = new LibreMap({ container: container.current, style: `https://tiles.openfreemap.org/styles/${theme.scheme === 'dark' ? 'dark' : 'positron'}`, center: [-70.39, -23.64], zoom: 13, attributionControl: { compact: false } });
+      instance = new LibreMap({ container: container.current, style: `https://tiles.openfreemap.org/styles/${theme.scheme === 'dark' ? 'dark' : 'positron'}`, center: [-70.39, -23.64], zoom: 13, attributionControl: { compact: true } });
       map.current = instance;
       instance.getCanvas().setAttribute('aria-label', label);
       const success = () => { loaded = true; clearTimeout(timeout); setLoading(false); setError(''); };

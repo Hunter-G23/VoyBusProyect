@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import type { Line, LineStatus } from './types';
 import { apiJson } from './api';
 import { useResource } from './useResource';
-import { Back, Button, Empty, LinePlate, Loading, Notice, Segmented, StatusChip, useStyles } from './ui';
+import { Back, Button, Empty, LinePlate, Loading, Notice, Segmented, useStyles } from './ui';
 import { useLanguage } from './i18n';
 import './i18n/admin';
 type StateEvent = { linea_id: number; admin_nombre: string; fecha: string; estado_nuevo: LineStatus };
@@ -35,7 +35,7 @@ function AdminRow({ line, event, onChanged }: { line: Line; event?: StateEvent; 
   }
   const date = event ? new Date(event.fecha) : null;
   return <View testID={`admin-line-${line.codigo}`} style={{ gap: 12, paddingBottom: 20 }}>
-    <LinePlate line={line} /><StatusChip status={line.estado ?? 'activa'} />
+    <LinePlate line={line} status={line.estado ?? 'activa'} />
     <Segmented label={t('admin.selector', { code: line.codigo })} value={status} disabled={busy} onChange={value => { setStatus(value); setConfirmation(false); setSaved(false); }} options={(['activa', 'inactiva', 'temporal'] as LineStatus[]).map(value => ({ value, label: label(value) }))} />
     <Text style={styles.small}>{event ? t('admin.last', { name: event.admin_nombre, date: date && Number.isFinite(date.getTime()) ? date.toLocaleString(language === 'es' ? 'es-CL' : 'en-GB') : t('admin.invalidDate') }) : t('admin.noChanges')}</Text>
     {!!error && <Notice message={error} />}

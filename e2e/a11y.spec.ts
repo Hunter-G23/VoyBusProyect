@@ -69,6 +69,21 @@ test('driver and administrator controls meet 48px targets', async ({ page }) => 
   await expect(page.getByTestId('admin-line-102')).toBeVisible(); await targets(page);
 });
 
+test('invalid login alert uses the error text color in light and dark themes', async ({ page }) => {
+  for (const [colorScheme, color] of [['light', 'rgb(155, 44, 44)'], ['dark', 'rgb(242, 160, 160)']] as const) {
+    await test.step(colorScheme, async () => {
+      await page.emulateMedia({ colorScheme });
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Ingresar', exact: true }).first().click();
+      await page.getByLabel('Correo electrónico', { exact: true }).fill('pasajero@example.test');
+      await page.getByLabel('Contraseña', { exact: true }).fill('Incorrecta2026!');
+      await page.getByRole('button', { name: 'Ingresar', exact: true }).last().click();
+      const message = page.getByRole('alert').getByText('Correo o contraseña incorrectos.', { exact: true });
+      await expect(message).toHaveCSS('color', color);
+    });
+  }
+});
+
 function ratio(a: string, b: string) {
   const luminance = (hex: string) => { const channels = [1, 3, 5].map(start => parseInt(hex.slice(start, start + 2), 16) / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4); return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722; };
   const values = [luminance(a), luminance(b)].sort((a, b) => b - a); return (values[0] + 0.05) / (values[1] + 0.05);

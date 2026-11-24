@@ -96,6 +96,25 @@ export function Button({ title, onPress, busy = false, disabled = false, seconda
   </ScalePressable>;
 }
 
+export function MenuRow({ title, icon, onPress, expanded }: {
+  title: string; icon: IconName; onPress: () => void; expanded?: boolean;
+}) {
+  const theme = useTheme();
+  const chevron = expanded === undefined ? "chevron-forward" : expanded ? "chevron-up" : "chevron-down";
+  return <ScalePressable accessibilityRole="button" accessibilityLabel={title}
+    accessibilityState={{ expanded }} onPress={onPress}
+    style={({ focused, pressed }: PressState) => [{
+      minHeight: 56, minWidth: 48, paddingHorizontal: 14, paddingVertical: 10,
+      borderRadius: 8, borderWidth: 2, borderColor: theme.border, backgroundColor: theme.paper,
+      flexDirection: "row", alignItems: "center", gap: 10, opacity: pressed ? 0.9 : 1,
+    }, focusRing(focused, theme.action)]}>
+    <Icon name={icon} />
+    <Text style={{ flex: 1, minWidth: 0, fontFamily: theme.fonts.semibold, fontWeight: theme.fonts.semibold ? undefined : "600",
+      fontSize: 18, color: theme.ink }}>{title}</Text>
+    <Icon name={chevron} size={20} />
+  </ScalePressable>;
+}
+
 export function HeaderButton({ title, onPress, disabled = false, accessibilityLabel, icon }: {
   title: string; onPress: () => void; disabled?: boolean; accessibilityLabel?: string; icon?: IconName;
 }) {
@@ -190,7 +209,11 @@ export const lineColors: Record<string, { background: string; text: string }> = 
   "121": { background: "#AD0101", text: "#FFFFFF" }, "129": { background: "#4E0963", text: "#FFFFFF" },
   E01: { background: "#598200", text: "#FFFFFF" },
 };
-export function LinePlate({ line, onPress, subtitle }: { line: Line; onPress?: () => void; subtitle?: string }) {
+function statusLabelKey(status: LineStatus) {
+  return `common.${status === "activa" ? "active" : status === "inactiva" ? "inactive" : "temporary"}`;
+}
+
+export function LinePlate({ line, onPress, subtitle, status }: { line: Line; onPress?: () => void; subtitle?: string; status?: LineStatus }) {
   const theme = useTheme();
   const { t } = useLanguage();
   const base = line.codigo.replace(/(?:N|Y\d+)$/, "");
@@ -198,6 +221,9 @@ export function LinePlate({ line, onPress, subtitle }: { line: Line; onPress?: (
   const background = line.color && /^#[0-9a-f]{6}$/i.test(line.color) ? line.color : official?.background ?? light.ink;
   const numberColor = line.color_texto && /^#[0-9a-f]{6}$/i.test(line.color_texto) ? line.color_texto : official?.text ?? light.paper;
   const electric = !!line.electrica || base === "E01";
+  const label = [line.codigo, line.nombre];
+  if (electric) label.push(t("common.electric"));
+  if (status) label.push(t(statusLabelKey(status)));
   const content = <>
     <View style={{ minWidth: 78, minHeight: 64, borderRadius: 6, backgroundColor: background,
       borderWidth: theme.scheme === "dark" ? 2 : 0, borderColor: theme.border, justifyContent: "center", alignItems: "center", paddingHorizontal: 8 }}>
@@ -210,12 +236,13 @@ export function LinePlate({ line, onPress, subtitle }: { line: Line; onPress?: (
         <Icon name="flash" size={18} color={theme.signal} />
         <Text style={{ color: theme.onPlate, fontFamily: theme.fonts.semibold, fontSize: 15 }}>{t("common.electric")}</Text>
       </View>}
+      {status && <StatusChip status={status} />}
     </View>
     {!!onPress && <Icon name="chevron-forward" color={theme.onPlate} />}
   </>;
   const plate: ViewStyle = { minHeight: 100, minWidth: 48, padding: 14, gap: 16, flexDirection: "row", flexWrap: "wrap", alignItems: "center",
     backgroundColor: theme.plate, borderRadius: 10, borderWidth: 2, borderColor: theme.scheme === "dark" ? theme.border : theme.plate };
-  return onPress ? <ScalePressable accessibilityRole="button" accessibilityLabel={`${line.codigo}, ${line.nombre}${electric ? `, ${t("common.electric")}` : ""}`}
+  return onPress ? <ScalePressable accessibilityRole="button" accessibilityLabel={label.join(", ")}
     accessibilityState={{ disabled: false }} onPress={onPress}
     style={({ focused, pressed }: PressState) => [plate, { opacity: pressed ? 0.9 : 1 }, focusRing(focused, theme.action)]}>{content}</ScalePressable>
     : <View style={plate}>{content}</View>;
@@ -226,7 +253,7 @@ export function StatusChip({ status }: { status: LineStatus }) {
   const { t } = useLanguage();
   const background = status === "activa" ? theme.action : status === "inactiva" ? theme.error : theme.signal;
   const color = status === "temporal" ? theme.signalInk : theme.onAction;
-  const label = t(`common.${status === "activa" ? "active" : status === "inactiva" ? "inactive" : "temporary"}`);
+  const label = t(statusLabelKey(status));
   return <View accessible accessibilityRole="text" accessibilityLabel={label}
     style={{ alignSelf: "flex-start", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: background }}>
     <Icon name={status === "activa" ? "checkmark-circle" : status === "inactiva" ? "close-circle" : "time-outline"} size={18} color={color} />

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Animated, Text, View } from "react-native";
 import type { Line, LineStatus, Route, Stop, User } from "./types";
 import { useResource } from "./useResource";
-import { Back, Button, Empty, LinePlate, Loading, Notice, Segmented, StatusChip, useStyles } from "./ui";
+import { Back, Button, Empty, LinePlate, Loading, Notice, Segmented, useStyles } from "./ui";
 import { useLanguage } from "./i18n";
 import "./i18n/lines";
 import { useListEntrance } from "./motion";
@@ -55,13 +55,12 @@ export function Lines({ onTrip, user = null, onLogin, selectedLine }: LinesProps
     ]} />}
     {resource.loading && !resource.data && !resource.error && <Loading />}
     {!!resource.error && <Notice message={resource.error} retry={() => void resource.reload()} stale={!!resource.data} />}
-    {!line && list.map((item, index) => <Animated.View key={item.id} style={[{ gap: 8 }, entrance(index)]}>
-      <LinePlate line={item} onPress={() => setLine(item)} />
-      <StatusChip status={item.estado ?? "activa"} />
+    {!line && list.map((item, index) => <Animated.View key={item.id} style={entrance(index)}>
+      <LinePlate line={item} status={item.estado ?? "activa"} onPress={() => setLine(item)} />
     </Animated.View>)}
     {!line && catalog.data && !list.length && <Empty title={t("lines.empty")} text={t("lines.emptyHelp")} />}
     {line && <>
-      <LinePlate line={line} /><StatusChip status={catalog.data?.lineas.find((item) => item.id === line.id)?.estado ?? line.estado ?? "activa"} />
+      <LinePlate line={line} status={catalog.data?.lineas.find((item) => item.id === line.id)?.estado ?? line.estado ?? "activa"} />
       {(!user || user.rol === "pasajero") && <Button secondary title={t(saved.find({ linea_id: line.id }) ? "lines.remove" : "lines.add")} busy={busy} disabled={saved.loading || !!saved.error} onPress={() => void toggle()} />}
       <Text accessibilityRole="header" style={styles.section}>{t("lines.routes")}</Text>
       <Segmented label={t("lines.routes")} value={route?.id ?? -1} onChange={(id) => setRoute(routes.data?.recorridos.find((item) => item.id === id) ?? null)}

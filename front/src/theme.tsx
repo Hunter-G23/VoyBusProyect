@@ -27,11 +27,11 @@ type Fonts = { [K in keyof typeof fontNames]: string | undefined };
 const systemFonts: Fonts = { body: undefined, medium: undefined, semibold: undefined, bold: undefined, condensed: undefined, heading: undefined, display: undefined };
 type ThemeValue = ThemeTokens & {
   colors: ThemeTokens; scheme: ThemeScheme; preference: ThemePreference; fonts: Fonts;
-  setPreference: (preference: ThemePreference) => Promise<void>; error: string;
+  setPreference: (preference: ThemePreference) => Promise<void>; storageError: string;
 };
 const ThemeContext = createContext<ThemeValue>({
   ...light, colors: light, scheme: "light", preference: "system", fonts: systemFonts,
-  setPreference: async () => {}, error: "",
+  setPreference: async () => {}, storageError: "",
 });
 export function ThemeProvider({ children, fontsLoaded = false }: { children: React.ReactNode; fontsLoaded?: boolean }) {
   const system = useColorScheme() === "dark" ? "dark" : "light";
@@ -39,7 +39,7 @@ export function ThemeProvider({ children, fontsLoaded = false }: { children: Rea
   const [preference, setPreferenceState] = useState<ThemePreference>("system");
   const [scheme, setScheme] = useState<ThemeScheme>(system);
   const [ready, setReady] = useState(false);
-  const [error, setError] = useState("");
+  const [storageError, setStorageError] = useState("");
   const [overlayColor, setOverlayColor] = useState(themes[system].background);
   const opacity = useRef(new Animated.Value(0)).current;
   const active = useRef(scheme);
@@ -51,7 +51,7 @@ export function ThemeProvider({ children, fontsLoaded = false }: { children: Rea
       setPreferenceState(value);
       const initial = value === "system" ? system : value;
       active.current = initial; setScheme(initial);
-    }).catch((reason: unknown) => { if (mounted) setError(String(reason)); })
+    }).catch((reason: unknown) => { if (mounted) setStorageError(String(reason)); })
       .finally(() => { if (mounted) setReady(true); });
     return () => { mounted = false; };
     // Read once before mounting the app. System changes below use the live scheme.
@@ -86,11 +86,11 @@ export function ThemeProvider({ children, fontsLoaded = false }: { children: Rea
   async function setPreference(value: ThemePreference) {
     try {
       await storage.set("voybus-theme", value);
-      setError(""); setPreferenceState(value);
-    } catch (reason) { setError(String(reason)); throw reason; }
+      setStorageError(""); setPreferenceState(value);
+    } catch (reason) { setStorageError(String(reason)); throw reason; }
   }
   const colors = themes[scheme];
-  return <ThemeContext.Provider value={{ ...colors, colors, scheme, preference, setPreference, fonts: fontsLoaded ? fontNames : systemFonts, error }}>
+  return <ThemeContext.Provider value={{ ...colors, colors, scheme, preference, setPreference, fonts: fontsLoaded ? fontNames : systemFonts, storageError }}>
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {ready ? children : null}
       <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden
