@@ -4,6 +4,7 @@ export type User = {
   correo: string;
   rol: "pasajero" | "conductor" | "administrador";
   idioma?: "es" | "en";
+  tiene_foto?: boolean;
   notificaciones?: NotificationPreferences;
 };
 export type LineStatus = "activa" | "inactiva" | "temporal";
@@ -88,6 +89,8 @@ export type VehiclePosition = {
   desactualizada: boolean;
 };
 export type VehicleInCirculation = {
+  color?: string;
+  color_texto?: string;
   servicio_id: number;
   vehiculo: string;
   linea: string;
@@ -109,4 +112,7 @@ export type PasswordChange = { actual: string; nueva: string; confirmacion: stri
 export type PhotoInput = { tipo: "image/jpeg" | "image/png"; datos_base64: string };
 export type LineStatusPatch = { estado: LineStatus };
 // Section 5 does not specify the history envelope. Narrow it after backend integration.
-export type TripHistoryResponse = unknown;
+export type TripHistoryResponse = {
+  vinculos: { id: number; linea: string; sentido: string; inicio: string; fin: string | null }[];
+  solicitudes: Request[];
+};

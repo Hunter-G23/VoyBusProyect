@@ -1,0 +1,25 @@
+﻿import { expect, test } from '@playwright/test';
+import { login } from './helpers';
+test('device favorites remind once and sync to the passenger account', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /^102,/ }).click();
+  await page.getByRole('button', { name: 'Agregar a favoritos', exact: true }).click();
+  await expect(page.getByText('Tus favoritos se guardan solo en este teléfono. Ingresa para no perderlos.')).toBeVisible();
+  await page.getByRole('button', { name: 'Entendido' }).click();
+  await page.getByRole('radio').first().click();
+  await page.getByRole('button', { name: 'Agregar a favoritos', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Entendido' })).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Favoritos', exact: true }).click();
+  await expect(page.getByText('102', { exact: true }).first()).toBeVisible();
+  await login(page);
+  await page.getByRole('tab', { name: 'Favoritos', exact: true }).click();
+  await page.getByRole('button', { name: 'Guardar en tu cuenta', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Guardar en tu cuenta', exact: true })).toHaveCount(0);
+  const response = await page.request.get('http://localhost:3001/api/favoritos');
+  const saved = (await response.json()).favoritos;
+  expect(saved.some((item: { linea: { codigo: string }; recorrido: unknown }) => item.linea.codigo === '102' && !item.recorrido)).toBe(true);
+  expect(saved.some((item: { linea: { codigo: string }; recorrido: unknown }) => item.linea.codigo === '102' && !!item.recorrido)).toBe(true);
+  await page.reload();
+  await page.getByRole('tab', { name: 'Favoritos', exact: true }).click();
+  await expect(page.getByText('102', { exact: true }).first()).toBeVisible();
+});

@@ -1,17 +1,20 @@
-# VoyBus
+﻿# VoyBus
 
-Proyecto de **Desarrollo de Soluciones Móviles, UCN, segundo semestre de 2026**.
-Equipo indicado en el repositorio: Juan Gomez y Benjamin Gutierrez.
+Proyecto de Desarrollo de Soluciones Móviles, UCN, segundo semestre de 2026. Equipo indicado en el repositorio: Juan Gomez y Benjamin Gutierrez. La validación formal del cliente y la prueba en teléfono siguen pendientes; ver [implementación y límites](docs/entrega2/IMPLEMENTACION.md).
 
-Implementación inicial de nueve requisitos de la [ERS](docs/entrega2/ERS_VoyBus_Entrega2_v1.docx), **pendiente de validación del cliente**. El catálogo y los servicios son ficticios para demostración. El [estado de implementación](docs/entrega2/IMPLEMENTACION.md) distingue lo desarrollado de lo pendiente. Hay un [borrador de consulta al cliente](docs/entrega2/CORREO_CLIENTE.md), todavía no enviado.
+## Qué incluye v2
 
-La [paleta de color](docs/entrega2/PALETA.md) ya está definida y aplicada por el equipo. Para solicitar la aprobación del cliente están preparados la [ficha PDF](docs/entrega2/PALETA_VoyBus_v1.pdf) y el [correo unificado de ERS y paleta](docs/entrega2/CORREO_CLIENTE.md).
+- Catálogo GTFS real de Antofagasta: líneas, variantes, colores oficiales, estados y paraderos ordenados.
+- Mapa y lista accesible de vehículos. Los servicios y vehículos son de demostración; no hay GPS real. La interfaz identifica las posiciones simuladas cuando la API las informa.
+- Favoritos de líneas y recorridos, guardado local sin sesión y sincronización idempotente al ingresar.
+- Mi viaje: vínculo manual, destinos futuros, solicitud con reintento sin duplicación y comprobante persistido. La bandeja del conductor conserva el mismo identificador.
+- Perfil: nombre, foto opcional, historial, español/inglés, tema sistema/claro/oscuro, preferencias de avisos locales, privacidad y cambio de contraseña.
+- Administrador: cambio confirmado del estado de una línea y último actor/fecha. No equivale a implementar todos los requisitos administrativos de la ERS.
+- Dirección visual Letrero, pasos de Boleto, Barlow, tokens de tema y movimiento reducido. [Diseño](DESIGN.md), [paleta y contrastes](docs/entrega2/PALETA.md).
 
-## Tecnologías
+Node.js 24+, Express y SQLite (`node:sqlite`); React Native, Expo SDK 58 y TypeScript. Sesiones web en cookie HttpOnly y nativas en SecureStore; sin tokens en localStorage. Las contraseñas se almacenan con bcrypt.
 
-React Native, Expo y TypeScript para el cliente. Node.js 24 o superior, Express y SQLite mediante node:sqlite para la API. JWT de 60 minutos, bcrypt con factor 12, SecureStore nativo y cookie HttpOnly en web. Node Test Runner y Playwright para las pruebas.
-
-## Instalar
+## Instalar y ejecutar
 
 Desde la raíz, con Node.js 24 y npm:
 
@@ -19,99 +22,84 @@ Desde la raíz, con Node.js 24 y npm:
 npm ci
 npm --prefix backend ci
 npm --prefix front ci
-
 if (!(Test-Path backend/.env)) { Copy-Item backend/.env.example backend/.env }
 if (!(Test-Path front/.env)) { Copy-Item front/.env.example front/.env }
-
 npm --prefix backend run migrate
 npm --prefix backend run seed
 ```
 
-El seed agrega datos de prueba de forma idempotente y conserva registros existentes. Para una demostración limpia, configura un nombre nuevo de base en backend/.env, por ejemplo `DB_PATH=./src/database/demo-nueva.db`, y ejecuta migración y seed. El seed se bloquea en producción.
+`backend/.env` no está versionado en este checkout (verificado con `git ls-files backend/.env`). Créalo localmente desde el ejemplo y no publiques secretos. En producción se exige una clave JWT de al menos 32 caracteres y HTTPS; el seed está bloqueado en producción. Para una demo limpia usa un `DB_PATH` nuevo, no borres la base existente.
 
-backend/.env ya estaba versionado en el repositorio recibido. Se preservó su configuración. Antes de publicar, excluir ese archivo del control de versiones y revisar si contiene credenciales que deban reemplazarse. Los .env.example solo contienen ejemplos. En desarrollo se genera una clave JWT local si no hay una válida; en producción se exige una clave configurada de al menos 32 caracteres y HTTPS.
-
-## Ejecutar en web
-
-Terminal 1:
+En terminales separadas:
 
 ```powershell
 npm run dev:api
-```
-
-Terminal 2:
-
-```powershell
 npm --prefix front run web
 ```
 
-Abre la dirección de Expo, normalmente http://localhost:8081. La API usa http://localhost:3000/api. Si cambias puertos, ajusta PORT, EXPO_PUBLIC_API_URL y WEB_ORIGINS en los archivos .env correspondientes.
+Expo publica normalmente en 8081 y la API en `http://localhost:3000/api`. Si cambias puertos, ajusta `PORT`, `WEB_ORIGINS` y `EXPO_PUBLIC_API_URL`. Para dos roles simultáneos usa perfiles distintos o incógnito: las pestañas del mismo perfil comparten cookie.
 
-Para probar pasajero y conductor a la vez, usa dos perfiles de navegador o una ventana normal y otra de incógnito. Dos pestañas del mismo perfil comparten la sesión web.
+### Expo Go en la red local
 
-## Ejecutar en teléfono
+Configura la API en `backend/.env`:
+
+```dotenv
+HOST=0.0.0.0
+PORT=3000
+```
+
+Y el cliente en `front/.env`, sustituyendo el marcador por la IP LAN real del PC:
+
+```dotenv
+EXPO_PUBLIC_API_URL=http://<PC LAN IP>:3000/api
+```
 
 ```powershell
 npm --prefix front start
 ```
 
-Usa Expo Go compatible con SDK 58 o un development build. Para un teléfono físico cambia EXPO_PUBLIC_API_URL en front/.env a `http://IP_LOCAL_DEL_PC:3000/api`, conecta ambos equipos a la misma red y permite conexiones al puerto 3000. Reinicia Expo después de cambiar las variables. En el emulador Android, la dirección habitual del host es `http://10.0.2.2:3000/api`.
+Conecta teléfono y PC a la misma red, permite el puerto 3000 en el firewall y abre el QR con Expo Go compatible con SDK 58. Reinicia Expo después de cambiar variables. El emulador Android usa habitualmente `http://10.0.2.2:3000/api`. No uses `localhost` del teléfono para señalar el PC. La instalación y los permisos de fotos/notificaciones en dispositivo real no se verificaron en esta ejecución.
 
-La prueba física y la generación de APK/IPA quedaron pendientes. Se verificaron las exportaciones de JavaScript para web, Android e iOS, que no equivalen a una aplicación instalada.
+## Datos oficiales y regeneración
 
-## Datos de prueba
+Datos: DTPR, GTFS `Antofagasta20250307`, [archivo de origen](https://dtpr.gob.cl/wp-content/uploads/2025/12/antofagasta.zip). Su calendario va del 1 de enero al 31 de diciembre de 2025: está vencido y no garantiza vigencia de recorridos u horarios en 2026. Los estados de línea no vienen del GTFS; los cambia un administrador. E01 se identifica como eléctrica por su código y la decisión documentada del proyecto.
 
-Contraseña ficticia y exclusivamente local para todas las cuentas: `VoyBusDemo2026!`.
+El JSON versionado es `backend/src/database/data/antofagasta.json`. Para regenerarlo, descarga el archivo, descomprímelo y pasa el directorio de los CSV, no el ZIP:
 
-| Rol | Correo | Servicio |
+```powershell
+node backend/scripts/gtfs-extract.cjs C:\ruta\gtfs-csv
+npm --prefix backend run migrate
+npm --prefix backend run seed
+```
+
+El extractor selecciona el viaje con más paraderos por ruta y sentido, conserva el orden y agrega las variantes a su línea base. No procesa ZIP en tiempo de ejecución. Revisa el diff de datos y prueba primero sobre una base de demostración separada. Los sufijos de variantes no se interpretan como horarios ni servicios especiales.
+
+## Cuentas de demostración
+
+Contraseña local de todas las cuentas: `VoyBusDemo2026!`. Nunca usar en producción.
+
+| Rol | Correo | Servicio / uso |
 | --- | --- | --- |
-| Pasajero | pasajero@example.test | Vínculo desde la aplicación |
-| Pasajera | pasajera@example.test | Privacidad y conteos |
-| Conductor | conductor@example.test | BUS001, L01, ida |
-| Conductor | conductor2@example.test | BUS002, L02 |
+| Pasajero | pasajero@example.test | Vínculo desde Mi viaje |
+| Pasajera | pasajera@example.test | Segunda sesión |
+| Conductor | conductor@example.test | BUS001, línea 102, ida |
+| Conductor | conductor2@example.test | BUS002, línea 103, ida |
 | Conductor sin servicio | sinservicio@example.test | Sin asignación |
-| Administrador | admin@example.test | Acceso y catálogo, administración futura |
+| Administrador | admin@example.test | Estado de líneas |
 | Pasajero inactivo | inactivo@example.test | Acceso rechazado |
 
-BUS001 recorre Inicio, Centro y Terminal. La última posición pasada es 1, por lo que se puede solicitar Centro o Terminal. BUS003 está inactivo y BUS004 no tiene servicio. Ida y vuelta tienen secuencias diferentes.
+BUS001 y BUS002 usan recorridos reales con vehículos de demostración. La primera posición está pasada; selecciona un paradero posterior. BUS003 está inactivo y BUS004 no tiene servicio. La bandeja consulta cada cinco segundos y no reconoce ni atiende solicitudes: esas transiciones siguen fuera de esta implementación.
 
-## Demostrar los nueve requisitos
-
-1. **RF01**: registrar un pasajero y mostrar rechazo de confirmación distinta o correo repetido.
-2. **RF02**: ingresar como pasajero. El registro público no crea conductores ni administradores.
-3. **RF04**: consultar las líneas públicas L01 y L02.
-4. **RF05**: abrir L01 y elegir ida o vuelta.
-5. **RF06**: consultar paraderos ordenados, códigos y coordenadas.
-6. **RF08**: abrir Mi viaje y vincular BUS001 por código manual.
-7. **RF09**: elegir Terminal y enviar la solicitud de parada.
-8. **RF10**: consultar el comprobante y recargar la aplicación para comprobar persistencia.
-9. **RF14**: ingresar como conductor en otra sesión y comprobar el mismo ID y destino. La bandeja se consulta cada 5 segundos mientras está visible.
-
-La bandeja no reconoce ni atiende solicitudes. Esas transiciones son RF15, posterior a esta selección. El seed prepara servicios activos; su gestión por pantalla corresponde a RF13. También quedan para después mapa/GPS, QR, cancelación, desvinculación y administración. No existe conexión con un timbre físico.
-
-## Pruebas
+## Comprobar
 
 ```powershell
 npm test
 npm run typecheck
 npm --prefix front run build:web
-
-# Primera ejecución de Playwright:
-npx playwright install chromium
-npm run test:e2e
-```
-
-Si tienes Chrome, puedes usarlo sin descargar Chromium:
-
-```powershell
 $env:PLAYWRIGHT_CHANNEL='chrome'
 npm run test:e2e
 ```
 
-Las pruebas API usan una base temporal. Playwright levanta su API aislada en 3001 y Expo en 8082, con tamaños móvil y escritorio. Comprueba registro, validaciones, catálogo, vínculo, pérdida de respuesta después de guardar, reintento sin duplicación, persistencia, pérdida de red y recepción por un conductor en una sesión separada. La [matriz de implementación](docs/entrega2/IMPLEMENTACION.md) registra los límites de estas verificaciones.
+Playwright inicia una API aislada en 3001 y Expo en 8082, con proyectos móvil y escritorio. Si la exportación agota memoria, se verificó también `npm --prefix front run build:web -- --max-workers 2`, sin cambiar dependencias o configuración del proyecto. El worker MapLibre 6.19.0 se copia desde el paquete instalado a `front/public/maplibre-gl-worker-6.19.0.mjs`; al actualizar MapLibre hay que actualizar la copia y su URL, y comprobar el archivo exportado en `front/dist`.
 
-## Organización
-
-backend/src separa config, database, routes, controllers, services, models, middlewares y utils. backend/test contiene pruebas API; front/src contiene las pantallas, API, almacenamiento y consultas; e2e contiene el flujo integrado. docs/entrega2 reúne ERS, estado y borrador de correo.
-
-La [presentación editable](docs/entrega2/Presentacion_Entrega2_VoyBus.pptx) conserva las diez diapositivas de la plantilla. La [guía de exposición](docs/entrega2/GUIA_PRESENTACION.md) y la [planificación hasta el 16 de noviembre](docs/entrega2/PLANIFICACION.md) acompañan el avance. Quedan por incorporar la validación física, el tablero externo, los responsables individuales, el video y los correos reales del cliente. No se atribuyen aprobaciones no recibidas.
+Los resultados observados y las restricciones de red/memoria están en [IMPLEMENTACION.md](docs/entrega2/IMPLEMENTACION.md). El mapa necesita acceso a OpenFreeMap; la lista y los estados siguen disponibles si no carga. No hay pagos, timbre físico, GPS real ni notificaciones push remotas. Los avisos locales dependen de las consultas mientras las vistas están activas.

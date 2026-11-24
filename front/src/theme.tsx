@@ -9,12 +9,14 @@ export const light = {
   background: "#F7F7F0", paper: "#FFFFFF", ink: "#132F35", muted: "#526769",
   action: "#12634D", onAction: "#FFFFFF", actionPressed: "#0D4B3B", border: "#71867C",
   signal: "#F6CE55", error: "#9B2C2C", surface: "#E8EEE9",
+  plate: "#132F35", onPlate: "#F7F7F0", plateMuted: "#D6E8DE", signalInk: "#132F35",
 } as const;
 export type ThemeTokens = { [K in keyof typeof light]: string };
 export const dark: ThemeTokens = {
   background: "#0C1C20", paper: "#132F35", ink: "#F7F7F0", muted: "#A9BDB8",
   action: "#6FD3AE", onAction: "#0C1C20", actionPressed: "#4FB892", border: "#8FA79D",
   signal: "#F6CE55", error: "#F2A0A0", surface: "#1E3A40",
+  plate: "#132F35", onPlate: "#F7F7F0", plateMuted: "#D6E8DE", signalInk: "#132F35",
 };
 export const themes = { light, dark };
 const fontNames = {

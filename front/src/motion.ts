@@ -76,7 +76,7 @@ export function ScalePressable({ style, onPressIn, onPressOut, ...props }: Press
     "aria-busy": state?.busy, "aria-disabled": state?.disabled, "aria-selected": state?.selected,
     "aria-checked": state?.checked, "aria-expanded": state?.expanded,
   } : {};
-  return React.createElement(Animated.View, { style: press.style },
+  return React.createElement(Animated.View, { style: [{ minWidth: 0, maxWidth: "100%" }, press.style] },
     React.createElement(Pressable, {
       ...props, ...webState, style,
       onPressIn: (event) => { press.onPressIn(); onPressIn?.(event); },

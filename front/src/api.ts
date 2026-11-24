@@ -8,6 +8,7 @@ export class ApiError extends Error {
     message: string,
     public status: number,
     public fields: Record<string, string> = {},
+    public code?: string,
   ) {
     super(message);
   }
@@ -43,6 +44,7 @@ async function requestJson<T>(path: string, method: string, body?: unknown): Pro
     if (!response.ok) {
       if (
         response.status === 401 &&
+        !(path === "/auth/contrasena" && data?.error?.codigo === "CONTRASENA_INCORRECTA") &&
         path !== "/auth/login" &&
         path !== "/auth/registro" &&
         path !== "/auth/me"
@@ -52,6 +54,7 @@ async function requestJson<T>(path: string, method: string, body?: unknown): Pro
         data?.error?.mensaje || "No pudimos completar la operación.",
         response.status,
         data?.error?.campos,
+        data?.error?.codigo,
       );
     }
     return data as T;
