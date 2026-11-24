@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ActivityIndicator, Animated, Image, Platform, StyleSheet, Text, TextInput, View,
   type StyleProp, type TextInputProps, type ViewStyle,
@@ -6,7 +6,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { light, useTheme } from "./theme";
 import { useLanguage } from "./i18n";
-import { focusRing, motion, ScalePressable, useDelayedLoading, useNativeDriver, useReducedMotion, type PressState } from "./motion";
+import { focusRing, motion, ScalePressable, useDelayedLoading, useFadeSlideEntrance, useNativeDriver, useReducedMotion, type PressState } from "./motion";
 import type { Line, LineStatus } from "./types";
 
 // Compatibility for screens restyled by later units. New screens use useTheme().
@@ -74,11 +74,13 @@ export function Icon({ name, size = 23, color }: { name: IconName; size?: number
 export type ButtonProps = {
   title: string; onPress: () => void; busy?: boolean; disabled?: boolean; secondary?: boolean;
   accessibilityLabel?: string; style?: StyleProp<ViewStyle>;
-  expanded?: boolean;
+  expanded?: boolean; leading?: React.ReactNode;
 };
-export function Button({ title, onPress, busy = false, disabled = false, secondary = false, accessibilityLabel, style, expanded }: ButtonProps) {
+export function Button({ title, onPress, busy = false, disabled = false, secondary = false, accessibilityLabel, style, expanded, leading }: ButtonProps) {
   const theme = useTheme();
   const reduced = useReducedMotion();
+  const label = <Text style={{ fontFamily: theme.fonts.heading, fontSize: 24, fontWeight: theme.fonts.heading ? undefined : "700",
+    color: secondary ? theme.ink : theme.onAction, textAlign: "center", opacity: busy ? 0 : 1, flexShrink: leading ? 1 : undefined }}>{title}</Text>;
   return <ScalePressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title}
     accessibilityState={{ disabled: disabled || busy, busy, expanded }} disabled={disabled || busy} onPress={onPress}
     style={({ pressed, focused, hovered }: PressState) => [{
@@ -88,19 +90,52 @@ export function Button({ title, onPress, busy = false, disabled = false, seconda
       backgroundColor: secondary ? theme.surface : pressed ? theme.actionPressed : theme.action,
       alignItems: "center", justifyContent: "center", opacity: disabled ? 0.65 : 1,
     }, hovered && !disabled && !busy ? { borderColor: theme.ink } : {}, focusRing(focused, theme.action), style]}>
-    <Text style={{ fontFamily: theme.fonts.heading, fontSize: 24, fontWeight: theme.fonts.heading ? undefined : "700",
-      color: secondary ? theme.ink : theme.onAction, textAlign: "center", opacity: busy ? 0 : 1 }}>{title}</Text>
+    {leading ? <View style={{ flexDirection: "row", alignItems: "center", gap: 8, maxWidth: "100%", opacity: busy ? 0 : 1 }}>
+      {leading}{label}
+    </View> : label}
     {busy && <View style={local.busy} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden>
       <ActivityIndicator animating={!reduced} hidesWhenStopped={false} color={secondary ? theme.ink : theme.onAction} />
     </View>}
   </ScalePressable>;
 }
 
+export function FavoriteButton({ saved, onPress, ...props }: Omit<ButtonProps, "onPress" | "secondary" | "leading"> & {
+  saved: boolean; onPress: (pulse: () => Promise<void>) => void;
+}) {
+  const reduced = useReducedMotion();
+  const scale = useRef(new Animated.Value(1)).current;
+  const reducePulse = useRef(reduced);
+  useLayoutEffect(() => { reducePulse.current = reduced; }, [reduced]);
+  useLayoutEffect(() => () => { scale.stopAnimation(); scale.setValue(1); }, [scale, reduced]);
+  async function pulse() {
+    if (reducePulse.current) return;
+    scale.setValue(1);
+    const timing = (toValue: number) => Animated.timing(scale, {
+      toValue, duration: motion.press, easing: motion.pressEasing, useNativeDriver,
+    });
+    await new Promise<void>((resolve) => Animated.sequence([timing(1.15), timing(1)]).start(() => resolve()));
+  }
+  return <Button {...props} secondary onPress={() => onPress(pulse)} leading={
+    <Animated.View style={{ transform: [{ scale: reduced ? 1 : scale }] }}>
+      <Icon name={saved ? "heart" : "heart-outline"} size={20} />
+    </Animated.View>
+  } />;
+}
+
 export function MenuRow({ title, icon, onPress, expanded }: {
   title: string; icon: IconName; onPress: () => void; expanded?: boolean;
 }) {
   const theme = useTheme();
-  const chevron = expanded === undefined ? "chevron-forward" : expanded ? "chevron-up" : "chevron-down";
+  const reduced = useReducedMotion();
+  const rotation = useRef(new Animated.Value(expanded ? 1 : 0)).current;
+  useLayoutEffect(() => {
+    if (expanded === undefined) return;
+    const target = expanded ? 1 : 0;
+    if (reduced) { rotation.setValue(target); return; }
+    const animation = Animated.timing(rotation, { toValue: target, duration: motion.fast, easing: motion.easing, useNativeDriver });
+    animation.start();
+    return () => animation.stop();
+  }, [expanded, reduced, rotation]);
   return <ScalePressable accessibilityRole="button" accessibilityLabel={title}
     accessibilityState={{ expanded }} onPress={onPress}
     style={({ focused, pressed }: PressState) => [{
@@ -111,7 +146,11 @@ export function MenuRow({ title, icon, onPress, expanded }: {
     <Icon name={icon} />
     <Text style={{ flex: 1, minWidth: 0, fontFamily: theme.fonts.semibold, fontWeight: theme.fonts.semibold ? undefined : "600",
       fontSize: 18, color: theme.ink }}>{title}</Text>
-    <Icon name={chevron} size={20} />
+    {expanded === undefined || reduced
+      ? <Icon name={expanded === undefined ? "chevron-forward" : expanded ? "chevron-up" : "chevron-down"} size={20} />
+      : <Animated.View style={{ transform: [{ rotate: rotation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] }) }] }}>
+        <Icon name="chevron-down" size={20} />
+      </Animated.View>}
   </ScalePressable>;
 }
 
@@ -157,10 +196,11 @@ export function Notice({ message, retry, stale = false, kind }: { message: strin
   const theme = useTheme();
   const { t } = useLanguage();
   const type = kind ?? (stale ? "stale" : "error");
+  const entrance = useFadeSlideEntrance(type, -4);
   const color = type === "error" ? theme.error : type === "simulated" ? theme.signalInk : theme.ink;
   const icons: Record<NoticeKind, IconName> = { error: "alert-circle-outline", stale: "time-outline", info: "information-circle-outline", simulated: "navigate-outline" };
-  return <View accessibilityRole={type === "error" ? "alert" : undefined} accessibilityLiveRegion="polite"
-    style={{ gap: 10, padding: 12, borderRadius: 8, backgroundColor: type === "simulated" ? theme.signal : theme.surface }}>
+  return <Animated.View accessibilityRole={type === "error" ? "alert" : undefined} accessibilityLiveRegion="polite"
+    style={[{ gap: 10, padding: 12, borderRadius: 8, backgroundColor: type === "simulated" ? theme.signal : theme.surface }, entrance]}>
     <View style={[styles.row, { alignItems: "flex-start" }]}>
       <Icon name={icons[type]} color={color} />
       <Text style={{ color, flex: 1, fontFamily: theme.fonts.body, fontSize: 16, lineHeight: 24 }}>
@@ -168,7 +208,7 @@ export function Notice({ message, retry, stale = false, kind }: { message: strin
       </Text>
     </View>
     {retry && <Button title={t("common.retry")} onPress={retry} secondary />}
-  </View>;
+  </Animated.View>;
 }
 
 export function Loading({ message, active = true }: { message?: string; active?: boolean }) {
@@ -251,13 +291,36 @@ export function LinePlate({ line, onPress, subtitle, status }: { line: Line; onP
 export function StatusChip({ status }: { status: LineStatus }) {
   const theme = useTheme();
   const { t } = useLanguage();
-  const background = status === "activa" ? theme.action : status === "inactiva" ? theme.error : theme.signal;
-  const color = status === "temporal" ? theme.signalInk : theme.onAction;
-  const label = t(statusLabelKey(status));
-  return <View accessible accessibilityRole="text" accessibilityLabel={label}
-    style={{ alignSelf: "flex-start", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: background }}>
-    <Icon name={status === "activa" ? "checkmark-circle" : status === "inactiva" ? "close-circle" : "time-outline"} size={18} color={color} />
-    <Text style={{ color, fontFamily: theme.fonts.semibold, fontSize: 14, flexShrink: 1 }}>{label}</Text>
+  const reduced = useReducedMotion();
+  const lastStatus = useRef(status);
+  const [outgoing, setOutgoing] = useState<LineStatus | null>(null);
+  const progress = useRef(new Animated.Value(1)).current;
+  useLayoutEffect(() => {
+    const previous = lastStatus.current;
+    lastStatus.current = status;
+    if (previous === status) { setOutgoing(null); return; }
+    progress.setValue(0);
+    setOutgoing(previous);
+    const animation = Animated.timing(progress, {
+      toValue: 1, duration: reduced ? motion.reduced : motion.fast, easing: motion.easing, useNativeDriver,
+    });
+    animation.start(({ finished }) => { if (finished) setOutgoing(null); });
+    return () => { animation.stop(); progress.setValue(1); };
+  }, [status, reduced, progress]);
+  function chip(state: LineStatus, opacity: Animated.Value | Animated.AnimatedInterpolation<number>, overlay = false) {
+    const backgroundColor = state === "activa" ? theme.action : state === "inactiva" ? theme.error : theme.signal;
+    const color = state === "temporal" ? theme.signalInk : theme.onAction;
+    return <Animated.View pointerEvents="none" accessibilityElementsHidden={overlay}
+      importantForAccessibility={overlay ? "no-hide-descendants" : undefined} aria-hidden={overlay || undefined}
+      style={[{ borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor, opacity },
+        overlay && { position: "absolute", top: 0, left: 0 }]}>
+      <Icon name={state === "activa" ? "checkmark-circle" : state === "inactiva" ? "close-circle" : "time-outline"} size={18} color={color} />
+      <Text style={{ color, fontFamily: theme.fonts.semibold, fontSize: 14, flexShrink: 1 }}>{t(statusLabelKey(state))}</Text>
+    </Animated.View>;
+  }
+  return <View accessible accessibilityRole="text" accessibilityLabel={t(statusLabelKey(status))} style={{ alignSelf: "flex-start" }}>
+    {chip(status, progress)}
+    {outgoing && chip(outgoing, progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), true)}
   </View>;
 }
 
@@ -266,11 +329,14 @@ function StepMark({ state, number }: { state: "completed" | "current" | "pending
   const reduced = useReducedMotion();
   const progress = useRef(new Animated.Value(1)).current;
   const previous = useRef(state);
-  useEffect(() => {
-    if (state !== "completed" || previous.current === "completed") { previous.current = state; return; }
-    previous.current = state; progress.setValue(0);
+  useLayoutEffect(() => {
+    const completed = state === "completed" && previous.current !== state;
+    previous.current = state;
+    if (!completed) return;
+    progress.setValue(0);
     const animation = Animated.timing(progress, { toValue: 1, duration: reduced ? motion.reduced : motion.base, easing: motion.easing, useNativeDriver });
-    animation.start(); return () => animation.stop();
+    animation.start();
+    return () => { animation.stop(); progress.setValue(1); };
   }, [state, progress, reduced]);
   return <Animated.View style={{ minWidth: 28, minHeight: 28, borderRadius: 14, alignItems: "center", justifyContent: "center",
     borderWidth: state === "current" ? 3 : 2, borderStyle: state === "pending" ? "dashed" : "solid",

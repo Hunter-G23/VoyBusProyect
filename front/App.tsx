@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  Animated, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, Text, View,
+  Animated, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, Text, View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -98,6 +98,36 @@ function Shell({ user, setUser, tab, setTab, screen, setScreen, auth, setAuth, b
     return () => { mounted = false; };
   }, [user]);
   const viewKey = `${auth ? "auth" : screen !== "main" ? screen : user?.rol === "conductor" ? "driver" : tab}-${user?.id ?? "public"}`;
+  const reduced = useReducedMotion();
+  const scroll = useRef<React.ElementRef<typeof Animated.ScrollView>>(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const divider = useRef(new Animated.Value(0)).current;
+  const dividerVisible = useRef(false);
+  const onScroll = React.useMemo(() => Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver },
+  ), [scrollY]);
+  useLayoutEffect(() => {
+    dividerVisible.current = false;
+    scrollY.setValue(0);
+    divider.setValue(0);
+    return () => divider.stopAnimation();
+  }, [viewKey, scrollY, divider]);
+  useLayoutEffect(() => {
+    const listener = scrollY.addListener(({ value }) => {
+      const visible = value > 8;
+      if (visible === dividerVisible.current) return;
+      dividerVisible.current = visible;
+      Animated.timing(divider, {
+        toValue: visible ? 1 : 0, duration: reduced ? motion.reduced : motion.fast,
+        easing: motion.easing, useNativeDriver,
+      }).start();
+    });
+    return () => scrollY.removeListener(listener);
+  }, [scrollY, divider, reduced]);
+  function resetLineScroll() {
+    scroll.current?.scrollTo({ y: 0, animated: false });
+    scrollY.setValue(0);
+  }
   const login = () => { setScreen("main"); setAuth(true); };
   const goTab = (value: Tab) => { setScreen("main"); setTab(value); };
   const preferenceError = language.error || notifications.error || (theme.storageError ? t("common.storageError") : "");
@@ -115,9 +145,14 @@ function Shell({ user, setUser, tab, setTab, screen, setScreen, auth, setAuth, b
         {user ? <Avatar photoUrl={photoReady && user.tiene_foto ? `${API_URL}/auth/me/foto` : null} headers={photoHeaders}
           label={`${t("common.profile")}: ${user.nombre}`} onPress={() => { setAuth(false); setScreen("profile"); }} />
           : <HeaderButton title={t("common.login")} onPress={login} />}
+        <Animated.View pointerEvents="none" style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: 1, backgroundColor: theme.border,
+          opacity: divider.interpolate({ inputRange: [0, 1], outputRange: [0, 1], extrapolate: "clamp" }),
+        }} />
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView key={viewKey} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+        <Animated.ScrollView key={viewKey} ref={scroll} onScroll={onScroll} scrollEventThrottle={16}
+          contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           <ScreenFade transitionKey={viewKey} style={{ flex: 1 }}>
             {(!!error || !!preferenceError || !!notification) && <View style={{ paddingHorizontal: 20, gap: 12 }}>
               {!!error && <Notice message={error} />}
@@ -138,12 +173,13 @@ function Shell({ user, setUser, tab, setTab, screen, setScreen, auth, setAuth, b
                 {user?.rol === "administrador" && <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
                   <HeaderButton title={t("common.adminLines")} onPress={() => setScreen("admin")} />
                 </View>}
-                {tab === "lines" ? <Lines selectedLine={selectedLine} user={user} onLogin={login} onTrip={() => goTab("trip")} /> : tab === "map" ? <VehicleMap />
+                {tab === "lines" ? <Lines selectedLine={selectedLine} user={user} onLogin={login} onTrip={() => goTab("trip")}
+                  onLineNavigation={resetLineScroll} /> : tab === "map" ? <VehicleMap />
                   : tab === "favorites" ? <Favorites user={user} onLogin={login} onLines={() => { setSelectedLine(null); goTab("lines"); }} onOpenLine={(line) => { setSelectedLine(line); goTab("lines"); }} />
                     : <Trip user={user} onLogin={login} />}
               </>}
           </ScreenFade>
-        </ScrollView>
+        </Animated.ScrollView>
       </KeyboardAvoidingView>
       {!auth && user?.rol !== "conductor" && <TabBar tab={tab} onChange={goTab} />}
     </View>
@@ -159,24 +195,28 @@ function TabBar({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) => void }) {
   const { t } = useLanguage();
   const reduced = useReducedMotion();
   const [width, setWidth] = useState(0);
-  const x = useRef(new Animated.Value(0)).current;
+  const target = tabs.findIndex((item) => item.key === tab) * width / tabs.length;
+  const previousWidth = useRef(0);
+  const x = useRef(new Animated.Value(target)).current;
   const opacity = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    const target = tabs.findIndex((item) => item.key === tab) * width / tabs.length;
-    x.stopAnimation();
-    if (reduced) x.setValue(target);
-    opacity.setValue(reduced ? 0 : 1);
-    const animation = Animated.parallel([
-      Animated.timing(x, { toValue: target, duration: reduced ? 0 : motion.base, easing: motion.easing, useNativeDriver }),
-      Animated.timing(opacity, { toValue: 1, duration: motion.reduced, useNativeDriver }),
-    ]);
-    animation.start(); return () => animation.stop();
-  }, [tab, width, reduced, x, opacity]);
+  useLayoutEffect(() => {
+    const resized = previousWidth.current !== width;
+    previousWidth.current = width;
+    if (reduced || resized) x.setValue(target);
+    if (resized || width === 0) return;
+    if (reduced) opacity.setValue(0);
+    const animation = Animated.timing(reduced ? opacity : x, {
+      toValue: reduced ? 1 : target, duration: reduced ? motion.reduced : motion.base,
+      easing: motion.easing, useNativeDriver,
+    });
+    animation.start();
+    return () => { animation.stop(); opacity.setValue(1); };
+  }, [target, width, reduced, x, opacity]);
   return <View accessibilityRole="tablist" accessibilityLabel={t("common.sections")}
     onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
     style={{ flexDirection: "row", backgroundColor: theme.paper, borderTopWidth: 1, borderTopColor: theme.border }}>
     {width > 0 && <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden
-      style={{ position: "absolute", top: 4, bottom: 4, left: 0, width: width / 4, borderRadius: 10,
+      style={{ position: "absolute", top: 4, bottom: 4, left: 0, width: width / tabs.length, borderRadius: 10,
         backgroundColor: theme.plate, borderWidth: theme.scheme === "dark" ? 2 : 0, borderColor: theme.border, transform: [{ translateX: x }], opacity }}>
       <View style={{ position: "absolute", bottom: 5, width: 22, height: 4, borderRadius: 2, backgroundColor: theme.signal, alignSelf: "center" }} />
     </Animated.View>}

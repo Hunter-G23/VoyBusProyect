@@ -1,10 +1,11 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Animated, Text, View } from 'react-native';
 import type { Line, LineStatus } from './types';
 import { apiJson } from './api';
 import { useResource } from './useResource';
 import { Back, Button, Empty, LinePlate, Loading, Notice, Segmented, useStyles } from './ui';
 import { useLanguage } from './i18n';
+import { useListEntrance } from './motion';
 import './i18n/admin';
 type StateEvent = { linea_id: number; admin_nombre: string; fecha: string; estado_nuevo: LineStatus };
 export type AdminLinesProps = { onBack: () => void };
@@ -12,13 +13,16 @@ export function AdminLines({ onBack }: AdminLinesProps) {
   const { t } = useLanguage(); const styles = useStyles();
   const lines = useResource<{ lineas: Line[] }>('/red/lineas?todas=1');
   const events = useResource<{ eventos: StateEvent[] }>('/admin/lineas/eventos');
+  const entrance = useListEntrance('admin-lines', lines.data?.lineas.length ?? 0);
   return <View style={styles.page}>
     <Back onPress={onBack} /><Text accessibilityRole="header" style={styles.title}>{t('admin.title')}</Text><Text style={styles.subtitle}>{t('admin.intro')}</Text>
     {lines.loading && !lines.data && !lines.error && <Loading />}
     {!!lines.error && <Notice message={lines.error} stale={!!lines.data} retry={() => void lines.reload()} />}
     {!!events.error && <Notice message={events.error} stale={!!events.data} retry={() => void events.reload()} />}
     {lines.data?.lineas.length === 0 && <Empty title={t('admin.empty')} text={t('admin.emptyHelp')} />}
-    {lines.data?.lineas.map(line => <AdminRow key={line.id} line={line} event={events.data?.eventos.find(event => event.linea_id === line.id)} onChanged={async () => { await Promise.all([lines.reload(), events.reload()]); }} />)}
+    {lines.data?.lineas.map((line, index) => <Animated.View key={line.id} style={entrance(index)}>
+      <AdminRow line={line} event={events.data?.eventos.find(event => event.linea_id === line.id)} onChanged={async () => { await Promise.all([lines.reload(), events.reload()]); }} />
+    </Animated.View>)}
   </View>;
 }
 function AdminRow({ line, event, onChanged }: { line: Line; event?: StateEvent; onChanged: () => Promise<void> }) {

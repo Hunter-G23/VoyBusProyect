@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   AccessibilityInfo, Animated, Easing, Platform, Pressable,
   type PressableProps, type StyleProp, type ViewStyle,
@@ -95,7 +95,7 @@ export function useScreenEntrance(key: string | number) {
       easing: motion.easing, useNativeDriver,
     });
     animation.start();
-    return () => animation.stop();
+    return () => { animation.stop(); progress.setValue(1); };
   }, [key, reduced, progress]);
   return {
     opacity: progress,
@@ -107,6 +107,25 @@ export function ScreenFade({ transitionKey, children, style }: {
 }) {
   const entrance = useScreenEntrance(transitionKey);
   return React.createElement(Animated.View, { style: [style, entrance] }, children);
+}
+
+export function useFadeSlideEntrance(key: string | null, offsetY: number) {
+  const reduced = useReducedMotion();
+  const progress = useRef(new Animated.Value(1)).current;
+  useLayoutEffect(() => {
+    if (key === null) return;
+    progress.setValue(0);
+    const animation = Animated.timing(progress, {
+      toValue: 1, duration: reduced ? motion.reduced : motion.fast,
+      easing: motion.easing, useNativeDriver,
+    });
+    animation.start();
+    return () => { animation.stop(); progress.setValue(1); };
+  }, [key, progress, reduced]);
+  return {
+    opacity: progress,
+    transform: [{ translateY: reduced ? 0 : progress.interpolate({ inputRange: [0, 1], outputRange: [offsetY, 0] }) }],
+  };
 }
 
 const enteredLists = new Set<string>();
@@ -161,7 +180,7 @@ export function StepTransition({ stepKey, children }: { stepKey: string | number
     if (stepKey === shown.key) return;
     const exit = Animated.timing(opacity, { toValue: 0, duration: motion.reduced, useNativeDriver });
     exit.start(({ finished }) => {
-      if (!finished) return;
+      if (!finished) { opacity.setValue(1); return; }
       entry.setValue(0);
       setShown(latest.current);
     });

@@ -1,11 +1,12 @@
 ﻿import React from 'react';
-import { Text, View } from 'react-native';
+import { Animated, Text, View } from 'react-native';
 import { MapCanvas } from './MapCanvas';
 import type { Line, VehiclesResponse } from './types';
 import { useResource } from './useResource';
 import { Empty, Icon, Loading, Notice, useStyles } from './ui';
 import { useTheme } from './theme';
 import { useLanguage } from './i18n';
+import { useListEntrance } from './motion';
 import './i18n/map';
 export function VehicleMap() {
   const styles = useStyles();
@@ -17,6 +18,7 @@ export function VehicleMap() {
     const line = lines.data?.lineas.find((line) => line.codigo === vehicle.linea);
     return { ...vehicle, color: line?.color ?? theme.ink, color_texto: line?.color_texto ?? theme.paper };
   }) ?? [];
+  const entrance = useListEntrance('map-vehicles', vehicles.length);
   return <View style={styles.page}>
     <Text accessibilityRole="header" style={styles.title}>{t('map.title')}</Text>
     <Text style={styles.subtitle}>{t('map.intro')}</Text>
@@ -29,10 +31,10 @@ export function VehicleMap() {
       {!vehicles.length ? <Empty title={t('map.empty')} text={t('map.refresh')} /> : <>
         <Text accessibilityRole="header" style={styles.section}>{t('map.list')}</Text>
         <Text style={styles.small}>{t('map.help')}</Text>
-        <View accessibilityRole="list" style={styles.list}>{vehicles.map((item) => {
+        <View accessibilityRole="list" style={styles.list}>{vehicles.map((item, index) => {
           const date = item.posicion ? new Date(item.posicion.medida_en) : null;
           const valid = date && Number.isFinite(date.getTime());
-          return <View key={item.servicio_id} accessibilityRole="listitem" style={styles.listRow}>
+          return <Animated.View key={item.servicio_id} accessibilityRole="listitem" style={[styles.listRow, entrance(index)]}>
             <Icon name="bus-outline" color={theme.action} />
             <View style={styles.grow}>
               <Text style={styles.label}>{t('map.vehicle', { vehicle: item.vehiculo, line: item.linea })}</Text>
@@ -40,7 +42,7 @@ export function VehicleMap() {
               {item.posicion && <Text style={styles.small}>{t('map.measured', { time: valid ? date.toLocaleTimeString(language === 'es' ? 'es-CL' : 'en-GB') : t('map.invalid') })}</Text>}
               <Text style={styles.body}>{t(!item.posicion ? 'map.missing' : item.posicion.desactualizada ? 'map.stale' : 'map.fresh')}</Text>
             </View>
-          </View>;
+          </Animated.View>;
         })}</View>
       </>}
     </>}

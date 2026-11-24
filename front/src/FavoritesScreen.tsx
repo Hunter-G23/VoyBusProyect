@@ -1,16 +1,18 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Animated, Text, View } from 'react-native';
 import type { Favorite, Line, User } from './types';
-import { Button, Empty, LinePlate, Loading, Notice, StatusChip, useStyles } from './ui';
+import { Button, Empty, FavoriteButton, LinePlate, Loading, Notice, StatusChip, useStyles } from './ui';
 import { useLanguage } from './i18n';
 import './i18n/favorites';
 import { removeFavorite, syncDeviceFavorites, useFavorites } from './favorites';
 import { notify, useNotificationPreferences } from './notify';
+import { useListEntrance } from './motion';
 export type FavoritesProps = { user: User | null; onLogin: () => void; onLines: () => void; onOpenLine?: (line: Line) => void };
 export function Favorites({ user, onLogin, onLines, onOpenLine }: FavoritesProps) {
   const { t } = useLanguage();
   const styles = useStyles();
   const saved = useFavorites(user);
+  const entrance = useListEntrance('favorites', saved.favorites.length);
   const notifications = useNotificationPreferences();
   const previous = useRef(new Map<number, string>());
   const [busy, setBusy] = useState(false);
@@ -25,9 +27,9 @@ export function Favorites({ user, onLogin, onLines, onOpenLine }: FavoritesProps
     });
     previous.current = current;
   }, [saved.favorites, notifications.preferences.estado_linea_favorita]);
-  async function remove(item: Favorite) {
+  async function remove(item: Favorite, pulse: () => Promise<void>) {
     setBusy(true); setError('');
-    try { await removeFavorite(user, item); }
+    try { await pulse(); await removeFavorite(user, item); }
     catch (reason) { setError((reason as Error).message); }
     finally { setBusy(false); }
   }
@@ -48,10 +50,10 @@ export function Favorites({ user, onLogin, onLines, onOpenLine }: FavoritesProps
     {!!saved.error && <Notice message={t(saved.error)} stale={!!saved.favorites.length} retry={saved.reload} />}
     {!!error && <Notice message={error} />}
     {!saved.loading && !saved.error && !saved.favorites.length && <><Empty title={t('favorites.empty')} text={t('favorites.help')} /><Button title={t('favorites.lines')} onPress={onLines} secondary /></>}
-    {saved.favorites.map(item => <View key={item.id} style={{ gap: 8 }}>
+    {saved.favorites.map((item, index) => <Animated.View key={item.id} style={[{ gap: 8 }, entrance(index)]}>
       <LinePlate line={{ ...item.linea, codigo: item.recorrido?.codigo ?? item.linea.codigo, nombre: item.recorrido?.nombre ?? item.linea.nombre }} subtitle={item.recorrido?.sentido} onPress={() => onOpenLine ? onOpenLine(item.linea) : onLines()} />
       <StatusChip status={item.linea.estado ?? 'activa'} />
-      <Button secondary title={t('favorites.remove')} accessibilityLabel={t('favorites.removeLabel', { code: item.linea.codigo, name: item.recorrido?.nombre ?? item.linea.nombre })} onPress={() => void remove(item)} disabled={busy || saved.loading} />
-    </View>)}
+      <FavoriteButton saved title={t('favorites.remove')} accessibilityLabel={t('favorites.removeLabel', { code: item.linea.codigo, name: item.recorrido?.nombre ?? item.linea.nombre })} onPress={pulse => void remove(item, pulse)} disabled={busy || saved.loading} />
+    </Animated.View>)}
   </View>;
 }
