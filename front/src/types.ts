@@ -3,8 +3,19 @@ export type User = {
   nombre: string;
   correo: string;
   rol: "pasajero" | "conductor" | "administrador";
+  idioma?: "es" | "en";
+  tiene_foto?: boolean;
+  notificaciones?: NotificationPreferences;
 };
-export type Line = { id: number; codigo: string; nombre: string };
+export type LineStatus = "activa" | "inactiva" | "temporal";
+export type NotificationType = "estado_linea_favorita" | "solicitud";
+export type NotificationPreferences = Record<NotificationType, boolean>;
+export type PreferencesPatch = { idioma?: "es" | "en"; notificaciones?: Partial<NotificationPreferences> };
+export type Line = {
+  id: number; codigo: string; nombre: string;
+  color?: string; color_texto?: string; electrica?: boolean | 0 | 1;
+  estado?: LineStatus; fuente?: string;
+};
 export type Route = {
   id: number;
   nombre: string;
@@ -12,6 +23,8 @@ export type Route = {
   origen: string;
   destino: string;
   linea?: string;
+  codigo?: string;
+  variante?: boolean | 0 | 1;
 };
 export type Stop = {
   id: number;
@@ -69,3 +82,37 @@ export type Inbox = {
   }[];
 };
 export type Attempt = { clave_idempotencia: string; destino_id: number };
+export type VehiclePosition = {
+  latitud: number;
+  longitud: number;
+  medida_en: string;
+  desactualizada: boolean;
+};
+export type VehicleInCirculation = {
+  color?: string;
+  color_texto?: string;
+  servicio_id: number;
+  vehiculo: string;
+  linea: string;
+  recorrido_id: number;
+  sentido: string;
+  posicion: VehiclePosition | null;
+};
+export type VehiclesResponse = {
+  fuente: "simulacion" | "gps";
+  generado_en: string;
+  vehiculos: VehicleInCirculation[];
+};
+export type LocalFavorite = { linea_id: number; recorrido_id: number | null };
+export type Favorite = { id: number; linea: Line; recorrido: Route | null; creado_en: string };
+export type FavoritesResponse = { favoritos: Favorite[] };
+export type FavoriteInput = { linea_id: number; recorrido_id?: number | null };
+export type ProfilePatch = { nombre: string };
+export type PasswordChange = { actual: string; nueva: string; confirmacion: string };
+export type PhotoInput = { tipo: "image/jpeg" | "image/png"; datos_base64: string };
+export type LineStatusPatch = { estado: LineStatus };
+// Section 5 does not specify the history envelope. Narrow it after backend integration.
+export type TripHistoryResponse = {
+  vinculos: { id: number; linea: string; sentido: string; inicio: string; fin: string | null }[];
+  solicitudes: Request[];
+};

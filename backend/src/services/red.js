@@ -1,17 +1,52 @@
 const { fail, positiveId } = require("../utils/errors");
-function redService(db) {
+function redService(db, repo, config, now) {
   return {
-    lines: () =>
+    vehicles() {
+      // RF07
+      const fecha = now();
+      const vehiculos = repo.activeVehicles();
+      const posiciones = vehiculos.filter((v) => v.medida_en !== null);
+      return {
+        fuente: (
+          posiciones.length
+            ? posiciones.some((v) => v.origen === "simulacion")
+            : config.simularGps
+        )
+          ? "simulacion"
+          : "gps",
+        generado_en: fecha.toISOString(),
+        vehiculos: vehiculos.map((v) => ({
+          servicio_id: v.servicio_id,
+          vehiculo: v.vehiculo,
+          linea: v.linea,
+          recorrido_id: v.recorrido_id,
+          sentido: v.sentido,
+          posicion:
+            v.medida_en === null
+              ? null
+              : {
+                  latitud: v.latitud,
+                  longitud: v.longitud,
+                  medida_en: v.medida_en,
+                  desactualizada: fecha - Date.parse(v.medida_en) > 30000,
+                },
+        })),
+      };
+    },
+    lines: (todas = false) =>
       db
         .prepare(
-          "SELECT id,codigo,nombre FROM linea WHERE activa=1 ORDER BY codigo",
+          `SELECT id,codigo,nombre,color,color_texto,electrica,estado,fuente FROM linea
+          ${todas ? "" : "WHERE estado='activa'"} ORDER BY codigo`,
         )
         .all(), // RF04
     routes(value) {
       // RF05
       const id = positiveId(value);
       const linea = db
-        .prepare("SELECT id,codigo,nombre FROM linea WHERE id=? AND activa=1")
+        .prepare(
+          "SELECT id,codigo,nombre,color,color_texto,electrica,estado,fuente FROM linea WHERE id=? AND activa=1",
+        )
         .get(id);
       if (!linea)
         fail(404, "LINEA_NO_DISPONIBLE", "Esta línea no está disponible.");
@@ -19,7 +54,7 @@ function redService(db) {
         linea,
         recorridos: db
           .prepare(
-            "SELECT id,nombre,sentido,origen,destino FROM recorrido WHERE linea_id=? AND activo=1 ORDER BY id",
+            "SELECT id,nombre,sentido,origen,destino,codigo,variante FROM recorrido WHERE linea_id=? AND activo=1 ORDER BY id",
           )
           .all(id),
       };

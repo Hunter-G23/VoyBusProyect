@@ -1,377 +1,145 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
-import * as Crypto from "expo-crypto";
-import { api, ApiError } from "./api";
-import { storage } from "./storage";
-import { useResource } from "./useResource";
-import type { Attempt, CurrentTrip, Request, Stop, User } from "./types";
-import {
-  Button,
-  colors,
-  Empty,
-  Field,
-  Icon,
-  Loading,
-  Notice,
-  styles,
-} from "./ui";
-const stateLabel: Record<Request["estado"], string> = {
-  pendiente: "Solicitud enviada",
-  reconocida: "Reconocida por el conductor",
-  atendida: "Solicitud atendida",
-  cancelada: "Solicitud cancelada",
-  expirada: "Solicitud expirada",
-};
-export function Trip({
-  user,
-  onLogin,
-}: {
-  user: User | null;
-  onLogin: () => void;
-}) {
-  if (!user)
-    return (
-      <View style={styles.page}>
-        <Text style={styles.title}>Tu próxima parada, a un toque</Text>
-        <Text style={styles.subtitle}>
-          Cuando estés a bordo, ingresa el código del bus y elige dónde quieres
-          bajar.
-        </Text>
-        <View style={styles.panel}>
-          <Icon name="bus-outline" size={40} color={colors.green} />
-          <Text style={styles.section}>Viaja con tu cuenta</Text>
-          <Text style={styles.body}>
-            Así podrás consultar tu solicitud y mantenerla vinculada a tu viaje.
-          </Text>
-          <Button title="Ingresar o crear cuenta" onPress={onLogin} />
-        </View>
-      </View>
-    );
-  if (user.rol !== "pasajero")
-    return (
-      <View style={styles.page}>
-        <Empty
-          title="Vista de pasajero"
-          text="Esta función está disponible para cuentas de pasajero. Puedes consultar la red desde Recorridos."
-        />
-      </View>
-    );
+﻿import React, { useEffect, useRef, useState } from 'react';
+import { Text, View } from 'react-native';
+import * as Crypto from 'expo-crypto';
+import { api, ApiError } from './api';
+import { storage } from './storage';
+import { useResource } from './useResource';
+import type { Attempt, CurrentTrip, Request, Stop, User } from './types';
+import { Button, Empty, Field, Icon, Loading, Notice, Steps, useStyles } from './ui';
+import { focusRing, ScalePressable, StepTransition, type PressState } from './motion';
+import { useTheme } from './theme';
+import { useLanguage } from './i18n';
+import './i18n/trip';
+import { notify, useNotificationPreferences } from './notify';
+export function Trip({ user, onLogin }: { user: User | null; onLogin: () => void }) {
+  const styles = useStyles(); const { t } = useLanguage(); const theme = useTheme();
+  if (!user) return <View style={styles.page}>
+    <Text accessibilityRole="header" style={styles.title}>{t('trip.welcome')}</Text>
+    <Text style={styles.subtitle}>{t('trip.intro')}</Text>
+    <View style={styles.panel}><Icon name="bus-outline" size={40} color={theme.action} />
+      <Text style={styles.section}>{t('trip.account')}</Text><Text style={styles.body}>{t('trip.accountHelp')}</Text>
+      <Button title={t('trip.login')} onPress={onLogin} />
+    </View>
+  </View>;
+  if (user.rol !== 'pasajero') return <View style={styles.page}><Empty title={t('trip.passenger')} text={t('trip.passengerHelp')} /></View>;
   return <PassengerTrip key={user.id} user={user} />;
 }
 function PassengerTrip({ user }: { user: User }) {
-  const current = useResource<CurrentTrip>("/viaje/actual");
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [selected, setSelected] = useState<number | null>(null);
-  const [attempt, setAttempt] = useState<Attempt | null>(null);
-  const [ready, setReady] = useState(false);
-  const lock = useRef(false);
-  const storageKey = `voybus-attempt-${user.id}`;
+  const styles = useStyles(); const theme = useTheme(); const { t, language } = useLanguage();
+  const notifications = useNotificationPreferences();
+  const current = useResource<CurrentTrip>('/viaje/actual');
+  const [code, setCode] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const [selected, setSelected] = useState<number | null>(null); const [attempt, setAttempt] = useState<Attempt | null>(null); const [ready, setReady] = useState(false);
+  const lock = useRef(false); const storageKey = `voybus-attempt-${user.id}`;
   const link = current.data?.vinculo;
-  const stops = useResource<{ paraderos: Stop[] }>(
-    link ? `/red/recorridos/${link.recorrido_id}/paraderos` : null,
-  );
+  const stops = useResource<{ paraderos: Stop[] }>(link ? `/red/recorridos/${link.recorrido_id}/paraderos` : null);
   const initialReceipt = current.data?.solicitud;
   const [receiptId, setReceiptId] = useState<number | null>(null);
-  const receipt = useResource<{ solicitud: Request }>(
-    receiptId ? `/viaje/solicitudes/${receiptId}` : null,
-    true,
-  );
+  const receipt = useResource<{ solicitud: Request }>(receiptId ? `/viaje/solicitudes/${receiptId}` : null, true);
   const request = receipt.data?.solicitud || initialReceipt;
-  const hasActive =
-    !!request && ["pendiente", "reconocida"].includes(request.estado);
+  const hasActive = !!request && ['pendiente', 'reconocida'].includes(request.estado);
+  const previous = useRef<{ id: number; state: string } | null>(null);
   useEffect(() => {
-    if (initialReceipt) setReceiptId(initialReceipt.id);
-  }, [initialReceipt?.id]);
+    if (!request) return;
+    if (previous.current?.id === request.id && previous.current.state !== request.estado && notifications.preferences.solicitud) {
+      void notify(t('trip.notification'), t(`trip.state.${request.estado}`)).catch(reason => setError((reason as Error).message));
+    }
+    previous.current = { id: request.id, state: request.estado };
+  }, [request?.id, request?.estado, notifications.preferences.solicitud]);
+  useEffect(() => { if (initialReceipt) setReceiptId(initialReceipt.id); }, [initialReceipt?.id]);
   useEffect(() => {
     if (attempt && request?.clave_idempotencia === attempt.clave_idempotencia) {
-      storage
-        .remove(storageKey)
-        .then(() => setAttempt(null))
-        .catch(() =>
-          setError(
-            "La solicitud está confirmada, pero no pudimos limpiar el intento local.",
-          ),
-        );
+      storage.remove(storageKey).then(() => setAttempt(null)).catch(() => setError(t('trip.clearError')));
     }
   }, [attempt, request?.clave_idempotencia, storageKey]);
   useEffect(() => {
     let active = true;
-    storage
-      .get(storageKey)
-      .then((value) => {
-        if (!active) return;
-        if (value) {
-          try {
-            const data = JSON.parse(value) as Attempt;
-            if (
-              typeof data.clave_idempotencia === "string" &&
-              Number.isInteger(data.destino_id)
-            ) {
-              setAttempt(data);
-              setSelected(data.destino_id);
-            }
-          } catch {
-            /* Invalid local attempt is ignored; no request is sent automatically. */
-          }
-        }
-        setReady(true);
-      })
-      .catch(() => {
-        if (active) {
-          setReady(true);
-          setError(
-            "No pudimos recuperar el intento local. Comprueba tu viaje antes de enviar.",
-          );
-        }
-      });
-    return () => {
-      active = false;
-    };
+    storage.get(storageKey).then(value => {
+      if (!active) return;
+      if (value) {
+        try { const data = JSON.parse(value) as Attempt;
+          if (typeof data.clave_idempotencia !== 'string' || !Number.isInteger(data.destino_id)) throw new Error('invalid attempt');
+          setAttempt(data); setSelected(data.destino_id);
+        } catch { setError(t('trip.invalidAttempt')); }
+      }
+      setReady(true);
+    }).catch(() => { if (active) { setReady(true); setError(t('trip.restoreError')); } });
+    return () => { active = false; };
   }, [storageKey]);
   async function linkVehicle() {
-    if (lock.current) return;
-    lock.current = true;
-    setBusy(true);
-    setError("");
-    try {
-      await api("/viaje/vincular", { codigo_vehiculo: code });
-      await current.reload();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-      lock.current = false;
-    }
+    if (lock.current) return; lock.current = true; setBusy(true); setError('');
+    try { await api('/viaje/vincular', { codigo_vehiculo: code }); await current.reload(); }
+    catch (reason) { setError((reason as Error).message); }
+    finally { setBusy(false); lock.current = false; }
   }
   async function send() {
-    if (lock.current || !selected || !ready) return;
-    lock.current = true;
-    setBusy(true);
-    setError("");
+    if (lock.current || !selected || !ready) return; lock.current = true; setBusy(true); setError('');
     try {
-      const intent = attempt || {
-        destino_id: selected,
-        clave_idempotencia: Crypto.randomUUID(),
-      };
-      await storage.set(storageKey, JSON.stringify(intent));
-      setAttempt(intent);
-      const result = await api<{ solicitud: Request }>(
-        "/viaje/solicitudes",
-        intent,
-      );
-      setReceiptId(result.solicitud.id);
-      await storage.remove(storageKey);
-      setAttempt(null);
-      await current.reload();
-    } catch (e) {
-      setError((e as Error).message);
-      if (e instanceof ApiError && e.status !== 0) {
-        // A definitive server rejection is not an uncertain delivery. Let the user correct it.
-        if (e.status < 500) {
-          await storage.remove(storageKey).catch(() => {});
-          setAttempt(null);
-          await current.reload();
-        }
+      const intent = attempt || { destino_id: selected, clave_idempotencia: Crypto.randomUUID() };
+      await storage.set(storageKey, JSON.stringify(intent)); setAttempt(intent);
+      const result = await api<{ solicitud: Request }>('/viaje/solicitudes', intent);
+      setReceiptId(result.solicitud.id); await storage.remove(storageKey); setAttempt(null); await current.reload();
+    } catch (reason) {
+      setError((reason as Error).message);
+      if (reason instanceof ApiError && reason.status > 0 && reason.status < 500) {
+        try { await storage.remove(storageKey); setAttempt(null); }
+        catch { setError(t('trip.restoreError')); }
+        await current.reload();
       }
-    } finally {
-      setBusy(false);
-      lock.current = false;
-    }
+    } finally { setBusy(false); lock.current = false; }
   }
-  const selectedStop = stops.data?.paraderos.find((x) => x.id === selected);
-  return (
-    <View style={styles.page}>
-      <View style={{ gap: 9 }}>
-        <Text style={styles.title}>Mi viaje</Text>
-        <Text style={styles.subtitle}>
-          {link
-            ? "Tu solicitud viaja con el servicio de este bus."
-            : "Ingresa el código visible en el bus cuando estés a bordo."}
-        </Text>
-      </View>
-      {current.loading && !current.data && <Loading />}
-      {!!current.error && (
-        <Notice
-          message={current.error}
-          retry={() => void current.reload()}
-          stale={!!current.data}
-        />
-      )}
-      {current.data && !link && (
-        <View style={styles.panel}>
-          <View style={styles.row}>
-            <Icon name="bus-outline" size={30} color={colors.green} />
-            <Text style={styles.section}>Vincula tu vehículo</Text>
-          </View>
-          <Field
-            label="Código del vehículo"
-            value={code}
-            onChangeText={setCode}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            placeholder="Por ejemplo, BUS001"
-            editable={!busy}
-          />
-          <Button
-            title="Vincular vehículo"
-            onPress={() => void linkVehicle()}
-            busy={busy}
-          />
+  const selectedStop = stops.data?.paraderos.find(item => item.id === selected);
+  const step = request ? 2 : link ? 1 : 0;
+  const date = request ? new Date(request.actualizada_en) : null;
+  const time = date && Number.isFinite(date.getTime()) ? date.toLocaleString(language === 'es' ? 'es-CL' : 'en-GB') : t('trip.invalidTime');
+  return <View style={styles.page}>
+    <Text accessibilityRole="header" style={styles.title}>{t('trip.title')}</Text>
+    <Text style={styles.subtitle}>{t(link ? 'trip.linkedHelp' : 'trip.board')}</Text>
+    <Steps current={step} />
+    {current.loading && !current.data && !current.error && <Loading />}
+    {!!current.error && <Notice message={current.error} stale={!!current.data} retry={() => void current.reload()} />}
+    <StepTransition stepKey={step}><View style={{ gap: 22 }}>
+      {current.data && !link && <View style={styles.panel}>
+        <Icon name="bus-outline" size={30} color={theme.action} /><Text style={styles.section}>{t('trip.link')}</Text>
+        <Field label={t('trip.code')} value={code} onChangeText={setCode} autoCapitalize="characters" autoCorrect={false} placeholder={t('trip.codeHint')} editable={!busy} />
+        <Button title={t('trip.linkAction')} onPress={() => void linkVehicle()} busy={busy} />
+      </View>}
+      {link && <>
+        <View style={[styles.panel, { borderWidth: 2, borderColor: theme.border }]}>
+          <Icon name="bus-outline" size={30} color={theme.action} /><Text style={styles.section}>{t('trip.vehicle', { code: link.codigo_vinculacion, line: link.linea })}</Text>
+          <Text style={styles.body}>{link.recorrido}</Text><Text style={styles.small}>{t('trip.vehicleDetails', { direction: link.sentido, plate: link.patente })}</Text>
         </View>
-      )}
-      {link && (
-        <>
-          <View style={[styles.panel, { backgroundColor: colors.ink }]}>
-            <View style={styles.row}>
-              <Icon name="bus-outline" size={30} color={colors.yellow} />
-              <Text style={{ fontSize: 26, fontWeight: "700", color: "white" }}>
-                {link.codigo_vinculacion}
-              </Text>
-            </View>
-            <Text style={{ fontSize: 17, lineHeight: 25, color: "white" }}>
-              {link.linea} · {link.recorrido}
-            </Text>
-            <Text style={{ fontSize: 15, color: "#D6E8DE" }}>
-              {link.sentido} · Patente {link.patente}
-            </Text>
+        {request && <View style={styles.panel} accessibilityLiveRegion="polite">
+          <Icon name={hasActive ? 'checkmark-circle-outline' : 'receipt-outline'} color={theme.action} />
+          <Text accessibilityRole="header" style={styles.section}>{t(`trip.state.${request.estado}`)}</Text>
+          <Text style={styles.body}>{t('trip.destination', { name: request.paradero, code: request.paradero_codigo })}</Text>
+          <Text style={styles.small}>{t('trip.receipt', { id: request.id, time })}</Text>
+          <Text style={styles.body}>{t(request.estado === 'pendiente' ? 'trip.pendingHelp' : 'trip.stateHelp')}</Text>
+          {!!receipt.error && <Notice message={receipt.error} stale />}
+          <Button title={t('trip.refresh')} onPress={() => void receipt.reload()} busy={receipt.loading} secondary />
+          <Text style={styles.small}>{t('trip.polling')}</Text>
+        </View>}
+        {link.servicio_estado !== 'activo' ? <Empty title={t('trip.ended')} text={t('trip.endedHelp')} /> : !hasActive && <>
+          <Text accessibilityRole="header" style={styles.section}>{t('trip.where')}</Text><Text style={styles.subtitle}>{t('trip.chooseHelp')}</Text>
+          {stops.loading && !stops.data && !stops.error && <Loading />}
+          {!!stops.error && <Notice message={stops.error} stale={!!stops.data} retry={() => void stops.reload()} />}
+          {stops.data?.paraderos.length === 0 && <Empty title={t('trip.empty')} text={t('trip.emptyHelp')} />}
+          <View accessibilityRole="radiogroup" accessibilityLabel={t('trip.where')} style={styles.list}>
+            {stops.data?.paraderos.map(stop => {
+              const passed = stop.posicion <= link.ultima_posicion; const checked = selected === stop.id; const disabled = passed || busy || !!attempt;
+              return <ScalePressable key={stop.id} accessibilityRole="radio" accessibilityLabel={t('trip.radio', { code: stop.codigo, name: stop.nombre, passed: passed ? t('trip.passedSuffix') : '' })} accessibilityState={{ checked, disabled }} disabled={disabled} onPress={() => setSelected(stop.id)}
+                style={({ focused, pressed }: PressState) => [styles.listRow, { backgroundColor: checked || pressed ? theme.surface : theme.background }, focusRing(focused, theme.action)]}>
+                <Icon name={passed ? 'checkmark-circle-outline' : checked ? 'radio-button-on' : 'radio-button-off'} color={theme.action} />
+                <View style={styles.grow}><Text style={styles.label}>{stop.nombre}</Text><Text style={styles.small}>{stop.codigo} · {passed ? t('trip.passed') : t('trip.stop', { position: stop.posicion })}</Text></View>
+              </ScalePressable>;
+            })}
           </View>
-          {request && (
-            <View style={styles.panel} accessibilityLiveRegion="polite">
-              <View style={styles.row}>
-                <Icon
-                  name={
-                    hasActive ? "checkmark-circle-outline" : "receipt-outline"
-                  }
-                  color={colors.green}
-                />
-                <Text style={[styles.section, { flex: 1 }]}>
-                  {stateLabel[request.estado]}
-                </Text>
-              </View>
-              <Text style={styles.body}>
-                Destino: {request.paradero} · {request.paradero_codigo}
-              </Text>
-              <Text style={styles.small}>
-                Solicitud #{request.id} ·{" "}
-                {new Date(request.actualizada_en).toLocaleString("es-CL")}
-              </Text>
-              <Text style={styles.body}>
-                {request.estado === "pendiente"
-                  ? "Tu solicitud está guardada. Aún no ha sido reconocida por el conductor."
-                  : "Este es el último estado registrado por el servidor."}
-              </Text>
-              {!!receipt.error && <Notice message={receipt.error} stale />}
-              <Button
-                title="Actualizar seguimiento"
-                onPress={() => void receipt.reload()}
-                busy={receipt.loading}
-                secondary
-              />
-              <Text style={styles.small}>
-                Se actualiza cada 5 segundos mientras esta pantalla está
-                abierta.
-              </Text>
-            </View>
-          )}
-          {link.servicio_estado !== "activo" ? (
-            <Empty
-              title="El servicio finalizó"
-              text="Puedes consultar tu comprobante. No se pueden enviar nuevas solicitudes a este servicio."
-            />
-          ) : (
-            !hasActive && (
-              <>
-                <View style={{ gap: 7 }}>
-                  <Text style={styles.section}>¿Dónde quieres bajar?</Text>
-                  <Text style={styles.subtitle}>
-                    Selecciona un paradero que aún no haya pasado.
-                  </Text>
-                </View>
-                {stops.loading && !stops.data && <Loading />}
-                {!!stops.error && (
-                  <Notice
-                    message={stops.error}
-                    retry={() => void stops.reload()}
-                    stale={!!stops.data}
-                  />
-                )}
-                <View style={styles.list}>
-                  {stops.data?.paraderos.map((stop) => {
-                    const passed = stop.posicion <= link.ultima_posicion;
-                    const active = selected === stop.id;
-                    const disabled = passed || busy || !!attempt;
-                    return (
-                      <Pressable
-                        key={stop.id}
-                        accessibilityRole="radio"
-                        accessibilityLabel={`${stop.codigo}, ${stop.nombre}${passed ? ", ya pasó" : ""}`}
-                        accessibilityState={{ checked: active, disabled }}
-                        disabled={disabled}
-                        onPress={() => setSelected(stop.id)}
-                        style={[styles.listRow, { opacity: passed ? 0.5 : 1 }]}
-                      >
-                        <Icon
-                          name={
-                            passed
-                              ? "checkmark-circle-outline"
-                              : active
-                                ? "radio-button-on"
-                                : "radio-button-off"
-                          }
-                          color={active ? colors.green : colors.muted}
-                        />
-                        <View style={styles.grow}>
-                          <Text
-                            style={[
-                              styles.body,
-                              { fontWeight: active ? "700" : "500" },
-                            ]}
-                          >
-                            {stop.nombre}
-                          </Text>
-                          <Text style={styles.small}>
-                            {stop.codigo} ·{" "}
-                            {passed ? "Ya pasó" : "Paradero " + stop.posicion}
-                          </Text>
-                        </View>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                {attempt && (
-                  <Text style={styles.body}>
-                    Hay un envío sin confirmar. Al reintentar se conserva el
-                    mismo destino y no se duplica la solicitud.
-                  </Text>
-                )}
-                <Button
-                  title={
-                    attempt
-                      ? "Reintentar envío"
-                      : selectedStop
-                        ? `Solicitar parada en ${selectedStop.nombre}`
-                        : "Selecciona tu paradero"
-                  }
-                  onPress={() => void send()}
-                  busy={busy}
-                  disabled={!selected || !ready || !!stops.error}
-                />
-              </>
-            )
-          )}
-        </>
-      )}
-      {!!error && <Notice message={error} />}
-      {attempt && (
-        <Button
-          title="Comprobar mi viaje"
-          onPress={() => void current.reload()}
-          secondary
-          busy={current.loading}
-        />
-      )}
-    </View>
-  );
+          {attempt && <Text style={styles.body}>{t('trip.uncertain')}</Text>}
+          <Button title={attempt ? t('trip.retry') : selectedStop ? t('trip.send', { name: selectedStop.nombre }) : t('trip.select')} onPress={() => void send()} busy={busy} disabled={!selected || !ready || !!stops.error} />
+        </>}
+      </>}
+    </View></StepTransition>
+    {!!error && <Notice message={error} />}
+    {attempt && <Button title={t('trip.check')} onPress={() => void current.reload()} secondary busy={current.loading} />}
+  </View>;
 }

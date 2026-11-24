@@ -5,7 +5,7 @@ const { tmpdir } = require("node:os");
 const path = require("node:path");
 const jwt = require("jsonwebtoken");
 const { openDatabase, migrate } = require("../src/database/db");
-const { seed, demoPassword } = require("../src/database/seed");
+const { fixtures: seed, password: demoPassword } = require("./fixtures");
 const { createApp } = require("../src/app");
 let db,
   server,
@@ -194,13 +194,13 @@ test("RF02 aplica permisos aunque el cliente cambie el rol o la URL", async () =
       await call(
         "POST",
         "/viaje/vincular",
-        { codigo_vehiculo: "BUS001" },
+        { codigo_vehiculo: "TEST01" },
         tokens.d,
       )
     ).status,
     403,
   );
-  const forged = jwt.sign({ rol: "conductor" }, config.jwtSecret, {
+  const forged = jwt.sign({ rol: "conductor", sv: 0 }, config.jwtSecret, {
     subject: "1",
     issuer: "voybus",
     audience: "voybus-app",
@@ -232,21 +232,45 @@ test("Sesión web usa cookie HttpOnly y cierre de sesión la elimina", async () 
     /Expires=Thu, 01 Jan 1970/,
   );
 });
-test("RF04 catálogo público solo devuelve líneas activas ordenadas", async () => {
+test("RF04 catálogo público identifica líneas activas ordenadas", async () => {
   const response = await call("GET", "/red/lineas");
   assert.equal(response.status, 200);
   assert.deepEqual(
     response.data.lineas.map((x) => x.codigo),
-    ["L01", "L02"],
+    ["T01", "T02"],
   );
 });
-test("RF04 distingue catálogo vacío de errores y permite recuperarlo", async () => {
-  db.exec("UPDATE linea SET activa=0");
-  const response = await call("GET", "/red/lineas");
+test("RF04 todas=1 incluye líneas inactivas con estado y metadatos", async () => {
+  const response = await call("GET", "/red/lineas?todas=1");
   assert.equal(response.status, 200);
-  assert.deepEqual(response.data.lineas, []);
-  db.exec("UPDATE linea SET activa=1 WHERE id IN(1,2)");
-  assert.equal((await call("GET", "/red/lineas")).data.lineas.length, 2);
+  assert.deepEqual(
+    response.data.lineas.map((x) => [x.codigo, x.estado]),
+    [
+      ["T01", "activa"],
+      ["T02", "activa"],
+      ["T03", "inactiva"],
+    ],
+  );
+  for (const linea of response.data.lineas)
+    for (const key of ["color", "color_texto", "electrica", "estado"])
+      assert.ok(Object.hasOwn(linea, key), key);
+});
+test("RF04 distingue catálogo vacío de errores y permite recuperarlo", async () => {
+  const emptyDb = openDatabase(":memory:");
+  migrate(emptyDb);
+  const emptyServer = createApp(emptyDb, config).listen(0, "127.0.0.1");
+  await new Promise((resolve) => emptyServer.once("listening", resolve));
+  const url = `http://127.0.0.1:${emptyServer.address().port}/api/red/lineas`;
+  try {
+    const response = await fetch(url);
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).lineas, []);
+    seed(emptyDb);
+    assert.equal((await (await fetch(url)).json()).lineas.length, 2);
+  } finally {
+    await new Promise((resolve) => emptyServer.close(resolve));
+    emptyDb.close();
+  }
 });
 test("RF05 filtra por línea, separa ida/vuelta y conserva IDs", async () => {
   const response = await call("GET", "/red/lineas/1/recorridos");
@@ -283,14 +307,14 @@ test("RF06 orden propio por recorrido, ocurrencias y coordenadas", async () => {
   assert.deepEqual(
     ida.paraderos.map((x) => [x.codigo, x.posicion]),
     [
-      ["P01", 1],
-      ["P02", 2],
-      ["P03", 3],
+      ["TP01", 1],
+      ["TP02", 2],
+      ["TP03", 3],
     ],
   );
   assert.deepEqual(
     vuelta.paraderos.map((x) => x.codigo),
-    ["P03", "P04", "P01"],
+    ["TP03", "TP04", "TP01"],
   );
   assert.equal(vuelta.paraderos[0].id, 4);
   assert.ok(
@@ -319,7 +343,9 @@ test("RF06 distingue recorrido inexistente y vacío", async () => {
     (await call("GET", "/red/recorridos/999/paraderos")).status,
     404,
   );
-  db.exec("INSERT INTO recorrido VALUES(90,1,'Vacío','Ida','A','B',1)");
+  db.exec(
+    "INSERT INTO recorrido(id,linea_id,nombre,sentido,origen,destino,activo) VALUES(90,1,'Vacío','Ida','A','B',1)",
+  );
   assert.deepEqual(
     (await call("GET", "/red/recorridos/90/paraderos")).data.paraderos,
     [],
@@ -330,8 +356,8 @@ test("RF08 rechaza códigos inválidos, inactivos y sin servicio", async () => {
   for (const [code, status] of [
     ["!", 400],
     ["BUS999", 404],
-    ["BUS003", 404],
-    ["BUS004", 404],
+    ["TEST03", 404],
+    ["TEST04", 404],
   ])
     assert.equal(
       (
@@ -350,16 +376,16 @@ test("RF08 crea vínculo persistente, idempotente y no permite cambiarlo", async
   const first = await call(
     "POST",
     "/viaje/vincular",
-    { codigo_vehiculo: " bus001 " },
+    { codigo_vehiculo: " test01 " },
     tokens.a,
   );
   assert.equal(first.status, 201);
   assert.equal(first.data.vinculo.servicio_id, 1);
-  assert.equal(first.data.vinculo.linea, "L01");
+  assert.equal(first.data.vinculo.linea, "T01");
   const second = await call(
     "POST",
     "/viaje/vincular",
-    { codigo_vehiculo: "BUS001" },
+    { codigo_vehiculo: "TEST01" },
     tokens.a,
   );
   assert.equal(second.status, 200);
@@ -369,7 +395,7 @@ test("RF08 crea vínculo persistente, idempotente y no permite cambiarlo", async
       await call(
         "POST",
         "/viaje/vincular",
-        { codigo_vehiculo: "BUS002" },
+        { codigo_vehiculo: "TEST02" },
         tokens.a,
       )
     ).status,
@@ -541,7 +567,7 @@ test("RF14 muestra mismo ID, agrupa por destino y omite datos personales", async
   await call(
     "POST",
     "/viaje/vincular",
-    { codigo_vehiculo: "BUS001" },
+    { codigo_vehiculo: "TEST01" },
     tokens.b,
   );
   const other = await call(

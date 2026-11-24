@@ -12,15 +12,22 @@
     "build:web": "expo export --platform web"
   },
   "dependencies": {
+    "@expo-google-fonts/barlow": "^0.4.1",
+    "@expo-google-fonts/barlow-condensed": "^0.4.1",
     "@expo/vector-icons": "^15.0.2",
     "expo": "~58.0.24",
     "expo-crypto": "~58.0.8",
+    "expo-font": "~58.0.12",
+    "expo-image-picker": "~58.0.10",
+    "expo-notifications": "~58.1.9",
     "expo-secure-store": "~58.0.3",
     "expo-status-bar": "~58.0.5",
+    "maplibre-gl": "^6.19.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
-    "react-native-web": "^0.21.4"
+    "react-native-web": "^0.21.4",
+    "react-native-webview": "14.0.1"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

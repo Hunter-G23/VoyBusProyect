@@ -8,6 +8,7 @@ export class ApiError extends Error {
     message: string,
     public status: number,
     public fields: Record<string, string> = {},
+    public code?: string,
   ) {
     super(message);
   }
@@ -17,12 +18,18 @@ export function setSessionExpired(callback: () => void) {
   onSessionExpired = callback;
 }
 export async function api<T>(path: string, body?: unknown): Promise<T> {
+  return requestJson<T>(path, body === undefined ? "GET" : "POST", body);
+}
+export function apiJson<T>(path: string, method: "PUT" | "PATCH" | "DELETE", body?: unknown): Promise<T> {
+  return requestJson<T>(path, method, body);
+}
+async function requestJson<T>(path: string, method: string, body?: unknown): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   try {
     const token = await session.get();
     const response = await fetch(API_URL + path, {
-      method: body === undefined ? "GET" : "POST",
+      method,
       headers: {
         "Content-Type": "application/json",
         ...(token && Platform.OS !== "web"
@@ -37,6 +44,7 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
     if (!response.ok) {
       if (
         response.status === 401 &&
+        !(path === "/auth/contrasena" && data?.error?.codigo === "CONTRASENA_INCORRECTA") &&
         path !== "/auth/login" &&
         path !== "/auth/registro" &&
         path !== "/auth/me"
@@ -46,6 +54,7 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
         data?.error?.mensaje || "No pudimos completar la operación.",
         response.status,
         data?.error?.campos,
+        data?.error?.codigo,
       );
     }
     return data as T;

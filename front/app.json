@@ -17,7 +17,16 @@
       "name": "VoyBus"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "VoyBus usa tus fotos solo para la imagen de tu perfil.",
+          "cameraPermission": "VoyBus usa la cámara solo para tomar la foto de tu perfil."
+        }
+      ],
+      "expo-notifications"
     ]
   }
 }

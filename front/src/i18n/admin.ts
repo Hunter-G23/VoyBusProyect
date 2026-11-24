@@ -1,0 +1,5 @@
+﻿import { registerDictionary } from './index';
+registerDictionary('admin', {
+  es: { title: 'Estado de líneas', intro: 'Cambia el estado publicado de cada línea. Se registra quién lo cambió y cuándo.', selector: 'Estado de línea {code}', change: 'Cambiar estado', confirm: 'Confirmar cambio', cancel: 'Cancelar', question: '¿Cambiar la línea {code} a {state}? El cambio será visible para los pasajeros.', last: 'Último cambio: {name} · {date}', noChanges: 'Sin cambios registrados.', empty: 'No hay líneas disponibles', emptyHelp: 'Vuelve a intentar más tarde.', invalidDate: 'Fecha no disponible', saved: 'Estado guardado.' },
+  en: { title: 'Line status', intro: 'Change the published status of each line. Changes record the actor and time.', selector: 'Status of line {code}', change: 'Change status', confirm: 'Confirm change', cancel: 'Cancel', question: 'Change line {code} to {state}? Passengers will see this change.', last: 'Last change: {name} · {date}', noChanges: 'No recorded changes.', empty: 'No lines available', emptyHelp: 'Please try again later.', invalidDate: 'Date unavailable', saved: 'Status saved.' },
+});

@@ -12,4 +12,4 @@ React Native y Expo para Android e iOS, con versión web para revisar el flujo. 
 
 ## Decisiones abiertas
 
-La paleta visual y las decisiones de la ERS aún requieren consulta al cliente. No hay integración GPS, timbre físico ni operación de transporte real. No se afirma haber medido cumplimiento de metas de rendimiento o validado en dispositivos que no se hayan probado.
+La paleta visual está definida por el equipo en [PALETA.md](docs/entrega2/PALETA.md) y aplicada en el cliente. Su aprobación y las decisiones de alcance de la ERS siguen pendientes de consulta al cliente. No hay integración GPS, timbre físico ni operación de transporte real. No se afirma haber medido cumplimiento de metas de rendimiento o validado en dispositivos que no se hayan probado.

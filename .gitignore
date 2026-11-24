@@ -21,3 +21,9 @@ coverage/
 test-results/
 playwright-report/
 
+# Local AI runtime state
+.atl/
+
+# Orquestar: traspasos y logs temporales
+.orquestar/tareas/
+.orquestar/logs/
