@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es-CL"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Costa · VoyBus Antofagasta</title>
+<style>
+:root{color-scheme:light;--paper:#fffefa;--ink:#122b38;--sub:#4e6167;--line:#dce3de;--blue:#123fc4;--wash:#edf3ec;--sea:#b2d9d9;--coral:#de7459;font-family:Barlow,"Segoe UI",Arial,sans-serif;color:var(--ink);background:#eeefea;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}button,input{font:inherit;color:inherit}button{cursor:pointer;border:0;background:transparent;touch-action:manipulation}button:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:-3px}button:active{opacity:.76}h1,h2,h3,p{margin:0}svg{display:block}svg.icon{width:21px;height:21px;flex:none}button svg{pointer-events:none}[hidden]{display:none!important}
+main{max-width:1040px;margin:0 auto;padding:33px 54px 48px}.caption{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:0 0 23px;border-bottom:1px solid #c7cec9}.caption h1{font-size:29px;font-weight:620;letter-spacing:-1.4px;line-height:1.1}.caption h1 span{color:var(--blue);font-size:16px;letter-spacing:-.5px;vertical-align:middle;margin-right:7px}.caption p{font-size:14px;color:var(--sub);margin-top:6px}.caption small{font-size:12px;color:#3f565d;white-space:nowrap}.caption small:before{content:"";display:inline-block;width:7px;height:7px;background:var(--coral);border-radius:50%;margin-right:7px}.screens{margin-top:31px;display:grid;grid-template-columns:repeat(2,minmax(0,360px));gap:37px;justify-content:center}.device{height:780px;min-width:0;position:relative;isolation:isolate;display:flex;flex-direction:column;border-radius:25px;background:var(--paper);overflow:hidden;box-shadow:0 1px 3px #0f292817,0 12px 36px -19px #0f29284a;outline:1px solid #1838371a}.status{display:flex;align-items:center;justify-content:space-between;padding:12px 25px 5px;height:36px;flex:none;font:bold 14px Arial}.status svg{width:60px;height:14px}.brandbar{display:flex;align-items:center;justify-content:space-between;padding:0 18px;height:48px;flex:none}.brand{display:flex;gap:5px;align-items:center;color:var(--ink);font:italic 800 23px/1 Arial,sans-serif;letter-spacing:-1.7px}.brand svg{width:25px;height:24px;color:var(--blue)}.city{display:flex;align-items:center;gap:5px;color:var(--sub);font-size:12px;font-weight:600}.city .icon{width:15px;height:15px}.view{flex:1;min-height:0;display:flex;flex-direction:column}.intro{position:relative;margin:4px 16px 0;flex:none;height:106px;border-radius:14px;overflow:hidden;background:#e7f0e8}.intro>svg{position:absolute;width:100%;height:100%;inset:0}.intro h2{position:absolute;left:14px;top:22px;font-size:44px;line-height:.98;letter-spacing:-3px;font-weight:650}.intro p{position:absolute;left:15px;bottom:20px;font-size:12px;color:#334d53}.search{margin:12px 16px 0;display:flex;align-items:center;gap:9px;padding:0 13px;background:#f3f4ef;border:1px solid #d6ded8;border-radius:11px;height:48px;flex:none}.search svg{width:19px;color:#3d5058}.search input{background:none;border:0;font-size:16px;width:100%;min-width:0;height:100%;border-radius:5px}.search input::placeholder{color:#536269;opacity:1}.filters{padding:3px 16px;display:flex;align-items:center;gap:8px;min-height:53px;flex:none}.filters button{height:48px;min-width:55px;padding:0;display:grid;align-items:center}.filters button span{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:650;color:var(--sub);border:1px solid var(--line)}.filters button[aria-pressed=true] span{color:white;background:var(--ink);border-color:var(--ink)}.count{margin-left:auto;font-size:12px;color:var(--sub)}.route-list{flex:1;overflow:auto;scrollbar-width:thin;padding:0 17px}.line-row{display:flex;align-items:center;min-height:76px;border-top:1px solid var(--line)}.line-choice{flex:1;min-width:0;text-align:left;display:flex;align-items:center;gap:13px;padding:9px 0;min-height:66px}.plate{border-left:3px solid var(--route);height:44px;min-width:57px;display:grid;align-items:center;padding-left:8px;color:var(--route);font:700 26px/1 "Segoe UI",Arial;letter-spacing:-1.5px}.dest{min-width:0;display:flex;flex-direction:column;gap:4px}.dest strong{font-size:16px;line-height:1.15;font-weight:650;letter-spacing:-.45px}.service{display:flex;align-items:center;gap:5px;color:var(--sub);font-size:12px;line-height:1.25}.service:before{content:"";width:6px;height:6px;border-radius:50%;background:#407253}.service.paused:before{background:#ab6928}.service.off:before{background:#6c7776}.star{display:grid;place-items:center;width:48px;height:48px;flex:none;color:#647270}.star[aria-pressed=true]{color:var(--blue)}.star[aria-pressed=true] svg{fill:#e0e9ff}.star svg{width:19px}.empty{padding:28px 0;font-size:16px;color:var(--sub)}.nav{border-top:1px solid var(--line);background:var(--paper);height:72px;flex:none;position:relative;display:flex;padding:1px 20px 14px;gap:4px;z-index:3}.nav button{position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;color:#55676a;font-size:12px}.nav button[aria-current=page]{color:var(--blue);font-weight:650}.nav button[aria-current=page]:before{position:absolute;top:-2px;content:"";width:30px;height:3px;background:var(--blue);border-radius:0 0 3px 3px}.trip-note{position:absolute;z-index:4;left:15px;right:15px;bottom:80px;margin:0;padding:11px 15px;background:var(--ink);box-shadow:0 3px 12px #153e4324;border-radius:10px;color:white;font-size:14px;line-height:1.4}.trip-note:empty{display:none}.nav:after{position:absolute;bottom:5px;left:calc(50% - 47px);width:94px;height:4px;content:"";background:#223539;border-radius:8px}
+.mapview{position:relative;background:#b0d9d9}.cartography{position:absolute;inset:0 0 145px;overflow:hidden}.map-base{width:100%;height:100%;position:absolute;inset:0}.map-label{font-family:"Segoe UI",Arial,sans-serif;paint-order:stroke;stroke:#f6f2e8;stroke-width:3px;stroke-linejoin:round}.msearch{position:absolute;top:11px;left:13px;right:13px;z-index:2}.msearch .search{margin:0;border-color:#bbcbc6;background:#fffefa;box-shadow:0 3px 12px #153e4312}.results{padding:3px 10px;background:var(--paper);border:1px solid var(--line);border-radius:10px;margin-top:4px}.results button{min-height:48px;width:100%;text-align:left;font-size:14px;border-bottom:1px solid var(--line)}.results button:last-child{border:0}.results p{padding:15px 2px;font-size:14px}.pin{position:absolute;width:48px;height:48px;display:grid;place-items:center;transform:translate(-50%,-50%);padding:0;border-radius:50%;color:var(--route)}.pin>.face{display:grid;place-items:center;width:26px;height:25px;background:var(--route);border:2px solid white;border-radius:7px;box-shadow:0 1px 4px #14323a55}.pin[aria-pressed=true]>.face{outline:4px solid #005ba944}.pin .bus{width:20px;height:18px}.pin .bolt{position:absolute;width:14px;height:14px;right:4px;top:5px;background:white;border-radius:5px;color:#4e7600;padding:1px}.compass{position:absolute;bottom:38px;left:16px;display:flex;flex-direction:column;align-items:center;font-size:12px;font-weight:700;color:#254a54;gap:3px}.compass svg{height:25px;width:17px}.sheet{position:absolute;bottom:0;width:100%;min-height:172px;background:var(--paper);border-radius:22px 22px 0 0;padding:19px 19px 16px;box-shadow:0 -3px 18px #1c454a12}.sheet:before{content:"";position:absolute;top:7px;left:calc(50% - 15px);width:30px;height:3px;border-radius:2px;background:#c7d1ca}.sheet-head{display:flex;align-items:center;gap:9px}.sheet-line{background:var(--route);color:white;line-height:1;border-radius:7px;font-size:21px;letter-spacing:-1px;font-weight:700;padding:6px 10px}.sheet .star{margin-left:auto}.sheet-title{font-size:26px;font-weight:650;letter-spacing:-1px;margin:1px 0 2px}.subroute{font-size:15px;color:var(--sub)}.demo{margin-top:13px;padding-top:9px;border-top:1px solid var(--line);display:flex;gap:7px;align-items:center;font-size:12px;color:var(--sub)}.demo:before{content:"";width:7px;height:7px;background:var(--coral);border-radius:50%}.sr{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden;white-space:nowrap}
+@media(max-width:829px){main{padding:24px 18px 40px}.screens{gap:18px}}@media(max-width:719px){main{padding:18px 9px 30px}.caption{margin:0 6px;align-items:flex-start;flex-direction:column;gap:9px;padding-bottom:16px}.caption p{font-size:13px}.screens{grid-template-columns:minmax(0,360px);margin-top:18px;gap:24px}.device{border-radius:18px}}
+@media(prefers-reduced-motion:no-preference){button{transition:opacity 110ms ease,background-color 120ms ease}.sheet-line{transition:background-color 150ms ease}}
+</style></head>
+<body><main><header class="caption"><div><h1><span>01 /</span> Costa</h1><p>Recorridos de Antofagasta entre el Pacífico y la cordillera.</p></div><small>Propuesta · datos de demostración</small></header><div class="screens"><section class="device" aria-label="Pantalla de líneas"></section><section class="device" aria-label="Pantalla de mapa"></section></div></main>
+<script>
+const routes=[
+ {id:'102',a:'Amatista',b:'El Huáscar',color:'#005BAA',state:'Activa',position:[199,254]},
+ {id:'103',a:'El Coigue',b:'El Huáscar',color:'#005BAA',state:'Activa',position:[238,147]},
+ {id:'104',a:'Av. Huamachuco',b:'El Huáscar',color:'#007DBD',state:'Pausa temporal'},
+ {id:'107',a:'Oficina Anita',b:'UA',color:'#A92023',state:'Inactiva'},
+ {id:'E01',a:'La Chimba',b:'UA',color:'#598200',state:'Activa',electric:true,position:[228,381]}
+];
+const names={trip:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6H16a3 3 0 0 1 0 6H8a3 3 0 0 0 0 6h7.5"/>',search:'<circle cx="10" cy="10" r="6.7"/><path d="m15.2 15.2 5 5"/>',map:'<path d="m2.8 5 6-2.2 6.4 2.3 6-2v15.7l-6 2.2-6.4-2.3-6 2.2zM8.8 3v15.7m6.4-13.6v15.5"/>',list:'<rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h2m-2 10h2"/>',star:'<path d="m12 2.9 2.8 5.7 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.5l6.2-.9z"/>',location:'<path d="M19 9c0 5-7 12-7 12S5 14 5 9a7 7 0 0 1 14 0Z"/><circle cx="12" cy="9" r="2.2"/>',bolt:'<path d="m13.2 1.6-8.6 12h6l-1.2 8.8 9-13h-6z" fill="currentColor" stroke="none"/>'};
+const icon=(name,cls='icon')=>'<svg class="'+cls+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" aria-hidden="true">'+names[name]+'</svg>';
+const brand='<div class="brand"><svg viewBox="0 0 28 24" aria-hidden="true"><path fill="currentColor" d="M0 4h5.2l5 13.2L19 3h5.4L12.8 22H7.3zm15.8 15.7 9.7-16.2H28L17.3 22h-2.8z"/></svg>voybus</div>';
+const status='<div class="status" aria-hidden="true">9:41<svg viewBox="0 0 64 15" fill="currentColor"><path d="M1 10h3v4H1zm5-3h3v7H6zm5-3h3v10h-3zm5-3h3v13h-3z"/><path d="M23 5q7-7 14 0l-1.8 1.9Q30 2 24.8 7Zm3.2 3q4-4.4 7.6 0L32 10q-2-2-4 0zm2.3 3 1.6 2 1.7-2q-1.7-1.8-3.3 0Z"/><rect x="41" y="2" width="19" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="43" y="4" width="15" height="7" rx="1.5"/><path d="M61 5h1.4v5H61z"/></svg></div>';
+const bus='<svg class="bus" viewBox="0 0 24 22" aria-hidden="true"><rect x="3" y="3" width="18" height="14" rx="3" fill="none" stroke="white" stroke-width="1.7"/><path d="M6 6h7v5H6zm9 0h3v5h-3zM6 13h2v2H6zm10 0h2v2h-2zM5 17h3v3H5zm11 0h3v3h-3z" fill="white"/></svg>';
+const normalize=value=>value.toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const matches=(r,q)=>normalize([r.id,r.a,r.b,r.electric?'eléctrica':''].join(' ')).includes(normalize(q.trim()));
+const stars=new Set();
+function coastArt(id){
+ const arch='M175 83 183 78 189 72 194 69 198 61 205 60 211 55 218 59 223 57 232 62 238 61 243 66 248 65 256 69 263 71 268 75 278 78 282 82 277 85 255 86 249 83 246 77 240 73 234 73 231 76 228 82 227 87 187 87Z';
+ const hatch=Array.from({length:38},(_,i)=>'<path d="M'+(164+i*3.5)+' 90q8-12 4-21t7-18"/>').join('');
+ const water=Array.from({length:5},(_,i)=>'<path d="M'+(143+i*5)+' '+(87+i*4)+'q22-2 42 0t54 0 53 0 42 0"/>').join('');
+ return '<svg viewBox="0 0 326 106" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><clipPath id="arch'+id+'"><path d="'+arch+'"/></clipPath></defs><rect width="326" height="106" fill="#eaf2ea"/><circle cx="270" cy="23" r="11" fill="#e48162"/><path d="m142 79 26-5 20 1 25-5 32 5 22-5 21 1 38-8v21H142" fill="#c1d6cf"/><path d="m133 86 28-7 40 1 28-4 42 1 21-2 34 2v29H121Z" fill="#bfdcda"/><g fill="none" stroke="#78aaaa" stroke-width=".8">'+water+'</g><path d="'+arch+'" fill="#e1d3ac"/><g stroke="#968767" stroke-width="1.1" fill="none" clip-path="url(#arch'+id+')">'+hatch+'</g><path d="m175 83 8-5 6-6 5-3 4-8 7-1 6-5 7 4 5-2 9 5 6-1 5 5 5-1 8 4 7 2 5 4 10 3" stroke="#88795d" fill="none" stroke-width="1.1"/><g fill="none" stroke="#526e71" stroke-linecap="round"><path d="M247 35q3-2 5 1 3-3 6-2m-20 7q2-1 4 1 2-2 4-1"/></g></svg>'
+}
+function cartography(id){
+ const coast='M171-15 170 25 161 50 164 68 153 97 156 110 145 137 146 151 136 174 139 190 129 211 123 220 123 237 109 253 105 273 93 285 94 304 84 321 87 337 79 349 67 359 68 375 75 382 72 398 79 406 76 423 83 438 78 458 87 470 84 491 72 510 370 510 370-15Z';
+ const edge='M335-12 330 33 337 60 320 93 331 116 318 144 322 162 302 182 310 205 301 226 307 244 291 267 300 289 290 303 298 330 282 355 290 380 278 397 290 422 281 447 290 474 283 510H-10V-12Z';
+ const blocks=[];const fills=['#e8e5d9','#e6e4d8','#e9e8dc','#e7e7dc','#e0e5d7','#e4dfd1'];
+ for(let y=-150,j=0;y<730;y+=22,j++){
+  for(let x=-50,k=0;x<530;x+=17,k++){
+   const w=15.1+(k%3)*.3;const h=19.4+(j%2)*.3;
+   blocks.push('<rect x="'+(x+(j%3)*.8)+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="1.1" fill="'+fills[(j*7+k*11)%fills.length]+'"/>');
+   if((j+k)%4===0)blocks.push('<path d="M'+(x+3)+' '+(y+5)+'h8v7h-8z" fill="#d4d3c6" opacity=".58"/>')
+  }
+ }
+ const bath=Array.from({length:5},(_,i)=>'<path d="M'+(138-i*16)+'-5c13 60-18 90-19 131s-29 44-24 74-40 53-41 93-40 57-19 104-14 71-8 106" fill="none" stroke="#8abcd0" stroke-width=".75" opacity=".85"/>').join('');
+ const hills=Array.from({length:14},(_,i)=>'<path d="M'+(330+i*5)+' -14q-13 24-3 47t-6 57 0 52-13 50-3 54-13 53 4 49-9 49 4 58-4 53" fill="none" stroke="#cbbda1" stroke-width="1" opacity=".7"/>').join('');
+ const r102='M216-16 210 42 196 81 198 100 187 122 190 143 172 175 169 190 183 205 177 228 199 254 187 274 181 301 161 329 155 360 148 378 151 398 138 422 145 449 131 474 127 505';
+ const r103='M275-8 266 26 259 56 247 78 254 95 242 122 238 147 221 176 219 195 200 220 198 235 178 253 163 277 163 292 148 313 143 336 125 355 128 388 119 406 124 431 109 463 115 502';
+ const re='M300-8 279 40 283 62 272 91 274 110 255 133 253 160 241 190 242 216 232 239 236 260 218 289 224 308 217 331 231 352 228 381 211 407 211 426 198 448 202 468 187 510';
+ const transit=(d,c,solid)=>'<path d="'+d+'" fill="none" stroke="#fffdf6" stroke-width="'+(solid?6:4)+'"/><path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="'+(solid?3.8:2.3)+'" stroke-linejoin="round" stroke-linecap="round"/>';
+ const stops=[[196,81],[172,175],[177,228],[181,301],[155,360],[138,422],[255,133],[242,216],[224,308],[211,426]].map(([x,y],i)=>'<rect x="'+(x-2.5)+'" y="'+(y-2.5)+'" width="5" height="5" rx="1" stroke="'+(i<6?'#005baa':'#598200')+'" fill="#fffefa" stroke-width="1.5"/>').join('');
+ return '<svg class="map-base" viewBox="0 0 360 500" preserveAspectRatio="none" role="img" aria-label="Mapa ilustrado de Antofagasta" lang="es"><title>Costa de Antofagasta, recorridos y paraderos simulados</title><defs><clipPath id="land'+id+'"><path d="'+coast+'"/></clipPath><clipPath id="urban'+id+'"><path d="'+edge+'"/></clipPath></defs><rect width="360" height="500" fill="#b8dcdb"/>'+bath+'<path d="'+coast+'" fill="#e9dfcb" stroke="#efe9d5" stroke-width="5"/><g clip-path="url(#land'+id+')">'+hills+'<g clip-path="url(#urban'+id+')"><path d="'+coast+'" fill="#f8f5ea"/><g transform="rotate(17 200 230)">'+blocks.join('')+'</g><path d="M147 163l22 7-14 31-19-6Zm27 108 19 7-9 16-22-4Zm64-188 20 4-5 14-22-3Z" fill="#bfceac"/><g fill="none" stroke="#fffcf2" stroke-width="5"><path d="M165 10q-6 60-13 98t-25 96-36 93-10 80-1 67"/><path d="M297-10 274 47 281 76 250 140 245 180 217 245 224 278 202 329 207 366 187 422 195 472"/><path d="m124 195 89 28 113 42m-235 41 88 24 113 42m-145-261 94 29 84 29"/></g></g></g><g fill="#dddaca" stroke="#c7c6b7" stroke-width="1"><path d="m91 325-26-8-1 5 26 10zm-3 13-39-13-2 6 35 13zm-12 12-24-7-1 4 20 7z"/></g>'+transit(r103,'#7d9daf',false)+transit(re,'#739631',false)+transit(r102,'#005baa',true)+stops+'<g class="map-label" fill="#58645f" font-size="12"><text x="198" y="103" transform="rotate(-62 198 103)">Costanera</text><text x="274" y="280" transform="rotate(-71 274 280)">Av. Argentina</text><text x="199" y="326" font-size="19" font-weight="650" text-anchor="middle" fill="#203e43">Antofagasta</text><text x="129" y="412" font-size="12">Parque Brasil</text></g><text x="48" y="212" fill="#437278" font-family="Georgia,serif" font-style="italic" font-size="16" transform="rotate(-72 48 212)">Océano Pacífico</text></svg>'
+}
+function star(r){const picked=stars.has(r.id);return '<button type="button" class="star" data-star="'+r.id+'" aria-label="'+(picked?'Quitar de':'Añadir a')+' favoritos la línea '+r.id+'" aria-pressed="'+picked+'">'+icon('star')+'</button>'}
+const stateLabel=r=>r.state+(r.electric?' · Eléctrica':'');
+function service(r){return '<span class="service '+(r.state==='Activa'?'':r.state==='Inactiva'?'off':'paused')+'">'+stateLabel(r)+'</span>'}
+function searchField(label){return '<label class="search">'+icon('search')+'<input type="search" placeholder="'+label+'" aria-label="'+label+'" autocomplete="off"></label>'}
+const panels=[...document.querySelectorAll('.device')].map((el,i)=>({el,i,tab:i?'map':'list',filter:'Todas',query:'',selected:routes[0]}));
+function renderList(panel){
+ const root=panel.el.querySelector('.view');
+ const saved=panel.tab==='saved';
+ root.className='view';
+ root.innerHTML='<div class="intro">'+coastArt(panel.i)+'<h2>'+(saved?'Favoritas':'Líneas')+'</h2><p>'+(saved?'Tus recorridos guardados':'Red de Antofagasta')+'</p></div>'+searchField('Buscar línea o destino')+'<div class="filters"><button type="button" data-filter="Todas"><span>Todas</span></button><button type="button" data-filter="Activas"><span>Activas</span></button><span class="count" aria-live="polite"></span></div><div class="route-list"></div>';
+ const input=root.querySelector('input');input.value=panel.query;
+ input.oninput=()=>{panel.query=input.value;renderRows(panel)};
+ renderRows(panel)
+}
+function renderRows(panel){
+ const root=panel.el;
+ const rows=routes.filter(r=>matches(r,panel.query)&&(panel.filter!=='Activas'||r.state==='Activa')&&(panel.tab!=='saved'||stars.has(r.id)));
+ const count=root.querySelector('.count');
+ count.textContent=rows.length+' línea'+(rows.length===1?'':'s');
+ root.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',String(panel.filter===b.dataset.filter)));
+ root.querySelector('.route-list').innerHTML=rows.length?rows.map(r=>'<div class="line-row" style="--route:'+r.color+'"><button class="line-choice" data-route="'+r.id+'" aria-label="Ver línea '+r.id+', '+r.a+' a '+r.b+' en el mapa"><span class="plate">'+r.id+'</span><span class="dest"><strong>'+r.a+' – '+r.b+'</strong>'+service(r)+'</span></button>'+star(r)+'</div>').join(''):'<p class="empty">'+(panel.tab==='saved'&&!stars.size?'Toca la estrella de una línea para guardarla.':'Sin líneas para esta búsqueda.')+'</p>'
+}
+function sheet(panel){
+ const r=panel.selected;const root=panel.el;
+ const sheet=root.querySelector('.sheet');
+ sheet.setAttribute('style','--route:'+r.color);
+ sheet.innerHTML='<div class="sheet-head"><span class="sheet-line">'+r.id+'</span>'+service(r)+star(r)+'</div><h2 class="sheet-title">Hacia '+r.b+'</h2><p class="subroute">Desde '+r.a+'</p><p class="demo">Demo / posiciones simuladas</p>';
+ root.querySelectorAll('.pin').forEach(pin=>pin.setAttribute('aria-pressed',String(r.id===pin.dataset.bus)))
+}
+function renderMap(panel){
+ const root=panel.el.querySelector('.view');
+ root.className='view mapview';
+ const pins=routes.filter(r=>r.position).map(r=>'<button type="button" class="pin" style="--route:'+r.color+';left:'+r.position[0]/360*100+'%;top:'+r.position[1]/500*100+'%" data-bus="'+r.id+'" aria-label="Bus simulado de la línea '+r.id+'"><span class="face">'+bus+'</span>'+(r.electric?icon('bolt','bolt'):'')+'</button>').join('');
+ root.innerHTML='<div class="cartography">'+cartography(panel.i)+pins+'<div class="compass" aria-label="Norte">N<svg viewBox="0 0 18 27" aria-hidden="true"><path fill="#284a54" d="m9 0 7 24-7-6Z"/><path fill="white" stroke="#284a54" d="m9 0-7 24 7-6Z"/></svg></div></div><div class="msearch">'+searchField('¿Adónde vas?')+'<div class="results" hidden></div></div><div class="sheet" aria-live="polite"></div>';
+ const input=root.querySelector('input'),results=root.querySelector('.results');
+ input.oninput=()=>{const q=input.value.trim();results.hidden=!q;if(!q)return;const hits=routes.filter(r=>matches(r,q));results.innerHTML=hits.length?hits.map(r=>'<button data-result="'+r.id+'"><b>'+r.id+'</b> · '+r.a+' – '+r.b+'</button>').join(''):'<p>Sin líneas para este destino.</p>'};
+ input.onkeydown=e=>{if(e.key==='Escape'){input.value='';results.hidden=true}};
+ sheet(panel)
+}
+function render(panel){
+ const nav=[['map','Mapa','map'],['list','Líneas','list'],['saved','Favoritas','star'],['trip','Mi viaje','trip']].map(([key,label,symbol])=>'<button type="button" data-tab="'+key+'" '+(panel.tab===key?'aria-current="page"':'')+'>'+icon(symbol)+label+'</button>').join('');
+ panel.el.innerHTML=status+'<div class="brandbar">'+brand+'<span class="city">'+icon('location')+'Antofagasta</span></div><div class="view"></div><p class="trip-note" role="status"></p><nav class="nav" aria-label="Navegación de la pantalla '+(panel.i+1)+'">'+nav+'</nav>';
+ if(panel.tab==='map')renderMap(panel);else renderList(panel)
+}
+for(const panel of panels){
+ render(panel);
+ panel.el.addEventListener('click',e=>{
+  const button=e.target.closest('button');if(!button)return;
+  clearTimeout(panel.tripTimer);
+  const note=panel.el.querySelector('.trip-note');
+  if(button.dataset.tab==='trip'){
+   note.textContent='Mi viaje · Aún no has iniciado un viaje.';
+   panel.tripTimer=setTimeout(()=>{note.textContent=''},3500);
+   return
+  }
+  note.textContent='';
+  if(button.dataset.star){
+   const id=button.dataset.star;
+   if(stars.has(id))stars.delete(id);else stars.add(id);
+   const keyboard=e.detail===0;
+   for(const p of panels){if(p.tab==='map')sheet(p);else renderRows(p)}
+   if(keyboard)(panel.el.querySelector('[data-star="'+id+'"]')||panel.el.querySelector('[aria-current]')).focus();
+  }else if(button.dataset.tab){
+   panel.tab=button.dataset.tab;panel.query='';render(panel);
+   if(e.detail===0)panel.el.querySelector('[aria-current]').focus()
+  }else if(button.dataset.filter){panel.filter=button.dataset.filter;renderRows(panel)}
+  else if(button.dataset.route){panel.selected=routes.find(r=>r.id===button.dataset.route);panel.tab='map';render(panel);if(e.detail===0)panel.el.querySelector('input').focus()}
+  else if(button.dataset.bus||button.dataset.result){
+   panel.selected=routes.find(r=>r.id===(button.dataset.bus||button.dataset.result));sheet(panel);
+   if(button.dataset.result){const input=panel.el.querySelector('input');input.value='';panel.el.querySelector('.results').hidden=true;if(e.detail===0)input.focus()}
+  }
+ })
+}
+</script></body></html>
+
+

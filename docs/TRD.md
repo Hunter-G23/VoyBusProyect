@@ -2,136 +2,146 @@
 
 ## 1. Resumen
 
-VoyBus permite consultar la red de micros de Antofagasta y pedir una parada a bordo. El pasajero elige un destino de su recorrido y recibe un comprobante. El conductor consulta las solicitudes de su servicio con el vehículo detenido. El administrador publica el estado de las líneas.
+VoyBus permite consultar la red de micros de Antofagasta, ver las micros en un mapa y pedir una parada a bordo. El pasajero elige un destino de su recorrido y recibe un comprobante. El conductor consulta las solicitudes de su servicio con el vehículo detenido. El administrador publica el estado de las líneas.
 
-El cliente funciona en Android, iOS y web. Este documento describe la rama `integracion/v2`. Las referencias RF corresponden a la [ERS de la entrega 2](entrega2/ERS_VoyBus_Entrega2_v1.docx). Las ampliaciones se describen en el [diseño v2](designs/voybus-v2-design.md).
+El cliente funciona en Android, iOS (Expo Go) y web. Este documento describe la rama `codex/rediseno-movilidad` (v3, diseño Costa claro y Pulso oscuro) y planifica lo que falta de la [ERS de la entrega 2](entrega2/ERS_VoyBus_Entrega2_v1.docx). Las ampliaciones se detallan en el [diseño v2](designs/voybus-v2-design.md) y el [rediseño v3](designs/voybus-v3-redesign.md).
 
 ## 2. Features
 
-| ID | Función | Prioridad | Descripción breve |
-|---|---|---|---|
-| F1 | Registro · RF01 | Must | Crear una cuenta de pasajero. |
-| F2 | Ingreso · RF02 | Must | Autenticar al usuario y abrir la vista de su rol. |
-| F3 | Cierre de sesión · RF03 | Must | Volver al acceso público y revocar las credenciales emitidas. |
-| F4 | Líneas · RF04 + v2 | Must | Consultar el catálogo público GTFS y filtrar por estado. |
-| F5 | Recorridos · RF05 + v2 | Must | Elegir sentido o variante dentro de una línea. |
-| F6 | Paraderos · RF06 | Must | Consultar la secuencia de paraderos del recorrido elegido. |
-| F7 | Vehículos · RF07 | Must | Consultar posiciones y su antigüedad en el mapa o la lista. |
-| F8 | Vínculo · RF08 | Must | Identificar el servicio a bordo mediante el código del vehículo. |
-| F9 | Solicitud de parada · RF09 | Must | Pedir una parada futura en el servicio vinculado. |
-| F10 | Comprobante · RF10 | Must | Recuperar el identificador y el estado de la solicitud propia. |
-| F11 | Bandeja del conductor · RF14 | Must | Consultar las solicitudes del servicio asignado al conductor. |
-| F12 | Favoritos · v2 | Must | Guardar líneas o recorridos en el dispositivo o en la cuenta. |
-| F13 | Perfil e historial · v2 | Must | Editar nombre y foto, consultar viajes propios y privacidad. |
-| F14 | Preferencias y avisos · v2 | Must | Elegir idioma, tema y tipos de notificación. |
-| F15 | Seguridad de la cuenta · v2 | Must | Cambiar la contraseña y cerrar las demás sesiones. |
-| F16 | Estado de líneas · v2 | Must | Publicar y registrar un cambio de estado confirmado por un administrador. |
+| ID | Función | ERS | Prioridad | Estado |
+|---|---|---|---|---|
+| F1 | Registro | RF01 | Must | Hecho |
+| F2 | Ingreso con control de rol | RF02 | Must | Hecho |
+| F3 | Cierre de sesión | RF03 | Must | Hecho |
+| F4 | Líneas y estado de servicio | RF04 + v2/v3 | Must | Hecho |
+| F5 | Recorridos y variantes | RF05 + v2 | Must | Hecho |
+| F6 | Paraderos ordenados | RF06 | Must | Hecho |
+| F7 | Mapa de micros, paraderos y ubicación | RF07 + v3 | Must | Hecho, falta validar en iPhone |
+| F8 | Vínculo por código | RF08 | Must | Hecho |
+| F9 | Solicitud de parada | RF09 | Must | Hecho |
+| F10 | Comprobante | RF10 | Must | Hecho |
+| F11 | Bandeja del conductor | RF14 | Must | Hecho |
+| F12 | Favoritos | v2 | Must | Hecho |
+| F13 | Perfil e historial | v2 | Must | Hecho |
+| F14 | Preferencias y avisos | v2 + v3 | Must | Hecho |
+| F15 | Seguridad de la cuenta | v2 | Must | Hecho |
+| F16 | Estado de líneas por el administrador | v2 + v3 | Must | Hecho |
+| F17 | Cancelar una solicitud pendiente | RF11 | Should | Pendiente |
+| F18 | Desvincularse de un servicio | RF12 | Should | Pendiente |
+| F19 | Iniciar y cerrar un servicio | RF13 | Should | Pendiente |
+| F20 | Reconocer y atender solicitudes | RF15 | Should | Pendiente |
+| F21 | Mantener la red de transporte | RF16 | Could | Pendiente |
+| F22 | Mantener vehículos | RF17 | Could | Pendiente |
+| F23 | Administrar usuarios y roles | RF18 | Could | Pendiente |
 
 ## 3. Comportamiento esperado
 
-### F1 — Registro
+### F1 a F3 — Identidad y acceso
 
-- Al registrar un nombre, un correo disponible y una contraseña válida con su confirmación, se crea una cuenta de pasajero y se ofrece añadir una foto u omitir ese paso. Un correo duplicado o un campo inválido impide el alta y muestra el error.
+- Registro: con nombre, correo disponible y contraseña válida se crea una cuenta de pasajero y se ofrece añadir una foto u omitirla. Un correo duplicado o un campo inválido muestra el error junto al campo.
+- Ingreso: el pasajero accede a sus pestañas, el conductor a su bandeja y el administrador a Estado de líneas. Se rechazan credenciales incorrectas y cuentas inactivas.
+- Cierre: el servidor incrementa la versión de sesión y el cliente borra la credencial local. Un token anterior recibe HTTP 401.
 
-### F2 — Ingreso
+### F4 a F6 — Red de transporte
 
-- Con credenciales válidas de una cuenta activa, el pasajero accede a sus pestañas, el conductor a su bandeja y el administrador a Estado de líneas. Se rechazan credenciales incorrectas y cuentas inactivas. Una sesión vencida requiere un nuevo ingreso.
+- Líneas muestra código, nombre, color GTFS y estado con texto e icono (activa, no activa, temporalmente inactiva). El filtro por estado y la búsqueda no ocultan filtros. La E01 lleva rayo y «Línea eléctrica».
+- Estado automático: activa si hay al menos una micro con posición en el mapa; no activa si no hay ninguna. El administrador puede fijar un estado manual y volver a automático (F16).
+- Al elegir una línea se ven sus recorridos (sentido, destino, variantes con código GTFS) y los paraderos en orden de paso. Tocar un paradero abre ese mismo paradero en el Mapa.
+- La pantalla identifica la fuente y versión del GTFS y advierte que su vigencia oficial terminó el 31-12-2025.
 
-### F3 — Cierre de sesión
+### F7 — Mapa
 
-- Al salir, el servidor incrementa la versión de sesión y el cliente elimina la credencial local. Al reabrir la aplicación se conserva el acceso público. Una petición con el token anterior recibe HTTP 401.
+- Visibilidad por zoom: con zoom menor a 12,5 no se dibujan micros y un aviso invita a acercarse; entre 12,5 y 14 cada micro es un punto de su color; desde 14 se ve el mini bus con rayo eléctrico y área táctil de 48 pt. Los paraderos son letreros con un bus y aparecen con fundido desde zoom 14,5. La micro y el paradero seleccionados se ven a cualquier zoom.
+- Panel inferior con tres alturas (contraído, medio, expandido). Sigue el dedo y se asienta según la velocidad; tocar el asa lo contrae o expande. Contiene buscador de paraderos, contexto con botón de cierre, filtro por línea con el color de cada línea y la lista.
+- Paradero: se ven solo las micros que aún pasarán por él, ordenadas, con minutos marcados como simulados o aproximados. El filtro de línea ofrece solo las líneas que lo sirven.
+- Micro: se dibuja solo su recorrido y sentido con el color de su línea, la cámara se acerca a ella y se oculta el resto de la flota y el filtro. Si vino de un paradero, el botón de cierre vuelve a ese paradero.
+- Mi ubicación: marcador propio distinto de las micros y botón que centra la cámara. Contempla carga, permiso denegado (con acceso a ajustes), GPS apagado, posición no disponible y usuario fuera de Antofagasta. Las actualizaciones de micros no mueven la cámara.
 
-### F4 — Líneas
+### F8 a F11 — Viaje y conductor
 
-- Al abrir Líneas, incluso sin sesión, se muestran código, nombre, color GTFS y estado de cada línea. El filtro permite elegir Activa, No activa o Temporalmente inactiva. Cada estado lleva texto e icono. E01 lleva un rayo y la etiqueta «Eléctrica».
-- La pantalla identifica la fuente y versión del catálogo. Si el filtro queda vacío, lo indica. Si falla una actualización, conserva los datos disponibles y señala que están desactualizados.
+- Vínculo: el pasajero ingresa el código del vehículo con servicio activo; un código inválido impide avanzar.
+- Solicitud: solo destinos futuros del recorrido vinculado. Un reintento con la misma clave devuelve la solicitud ya guardada.
+- Comprobante: identificador, destino y estado; solo el titular puede consultarlo.
+- Bandeja: el conductor consulta cada cinco segundos las solicitudes de su servicio, sin acceso a otros servicios.
 
-### F5 — Recorridos
+### F12 a F16 — Cuenta y administración
 
-- Al elegir una línea, se muestran los recorridos disponibles con su sentido y destino. Las variantes conservan el código y el nombre del GTFS. Si la línea carece de recorridos, el detalle muestra el estado vacío.
+- Favoritos en la cuenta o en el dispositivo, con aviso la primera vez y copia idempotente al ingresar.
+- Perfil con foto (JPEG o PNG ≤ 512 KB), nombre editable, historial y privacidad.
+- Preferencias: idioma (español, inglés) y tema (sistema, claro, oscuro) disponibles también sin sesión desde Ajustes; los avisos locales requieren cuenta.
+- Seguridad: cambiar la contraseña conserva la sesión actual y cierra las demás; una contraseña actual incorrecta responde HTTP 403.
+- Estado de líneas: cada cambio confirmado queda auditado con estado anterior, nuevo, autor y fecha; otros roles reciben HTTP 403.
 
-### F6 — Paraderos
+### F17 — Cancelar una solicitud pendiente (RF11)
 
-- Al elegir un recorrido, se muestran sus paraderos en orden de paso. Si el vehículo pasa dos veces por el mismo paradero, cada paso ocupa su lugar en la secuencia. Si falla la consulta, el usuario puede reintentarla.
+- El titular cancela una solicitud pendiente: queda «cancelada» con fecha del servidor y desaparece de la bandeja activa. Repetir la cancelación conserva el resultado.
+- Si ya fue reconocida, atendida o expirada, la API responde conflicto sin cambiar el estado. La carrera entre reconocer y cancelar se resuelve en una transacción.
 
-### F7 — Vehículos
+### F18 — Desvincularse de un servicio (RF12)
 
-- Al abrir Mapa, la lista y los marcadores identifican los vehículos con servicio activo. La vista distingue posiciones simuladas, muestras de más de 30 segundos y vehículos sin datos. Al actualizarse una posición se conserva el encuadre elegido.
-- Si falla el mapa base, se informa del fallo y la lista sigue disponible con los datos recibidos de la API.
+- El pasajero cierra su vínculo activo si no tiene una solicitud pendiente o reconocida. El vínculo queda cerrado con fecha y puede vincular otro servicio; el historial sigue disponible.
+- Con solicitud activa se rechaza e informa el estado. Repetir el cierre no crea otro vínculo ni borra historial.
 
-### F8 — Vínculo
+### F19 — Iniciar y cerrar un servicio (RF13)
 
-- En Mi viaje, el pasajero autenticado introduce el código de un vehículo con servicio activo. El sistema conserva un único vínculo activo y muestra los destinos de ese servicio. Repetir la operación sobre el mismo servicio recupera el vínculo.
-- Un código desconocido, un vehículo inactivo o la ausencia de servicio impiden avanzar al paso Destino.
+- El conductor inicia un servicio con vehículo y recorrido activos si ni el vehículo ni él tienen otro servicio activo. Al cerrarlo se registra la fecha final, se cierran sus vínculos y expiran las solicitudes activas, todo en una transacción.
+- La última posición pasada solo avanza dentro de su recorrido. Se rechaza vehículo ocupado, recorrido inválido o servicio ajeno.
 
-### F9 — Solicitud de parada
+### F20 — Reconocer y atender solicitudes (RF15)
 
-- Con un vínculo activo, el pasajero selecciona una ocurrencia posterior a la última posición del servicio. El servidor valida recorrido y secuencia antes de guardar la solicitud. Rechaza destinos ajenos o ya pasados.
-- Si se pierde la respuesta, el cliente conserva el destino y la clave de reintento. Reenviar la misma operación devuelve la solicitud persistida una sola vez.
+- Sobre su servicio, el conductor reconoce una solicitud pendiente y después la marca atendida. Cada transición guarda actor, estado y fecha en `evento_solicitud`, se refleja en el comprobante (F10) y retira las atendidas de la bandeja.
+- Repetir el mismo estado conserva el resultado. Saltar de pendiente a atendida, cambiar estados finales o tocar otro servicio se rechaza.
 
-### F10 — Comprobante
+### F21 — Mantener la red (RF16)
 
-- Tras confirmar la persistencia, Mi viaje muestra el identificador, destino y estado de la solicitud. Al recuperar la conexión se consulta el estado guardado. Solo el titular puede consultar su comprobante.
+- El administrador crea y edita líneas, recorridos y paraderos con ocurrencias ordenadas, y desactiva registros sin borrar los referenciados. Los cambios se reflejan en las consultas públicas.
+- Se rechazan códigos duplicados, posiciones repetidas y coordenadas inválidas. Un recorrido con servicio activo no admite cambios de secuencia y no se desactiva una línea con servicios activos.
 
-### F11 — Bandeja del conductor
+### F22 — Mantener vehículos (RF17)
 
-- Con la bandeja visible, el conductor consulta cada cinco segundos las solicitudes de su servicio. Ve el mismo identificador que el pasajero y los conteos por destino. Si carece de asignación, la vista lo indica. El acceso a solicitudes de otros servicios está restringido.
+- Registrar y editar vehículos con patente y código de vinculación únicos; activar o desactivar sin perder servicios históricos.
+- Se rechaza desactivar un vehículo con servicio activo y duplicar código o patente. El código no funciona como credencial de conductor.
 
-### F12 — Favoritos
+### F23 — Usuarios y roles (RF18)
 
-- Desde el detalle se guarda una línea o un recorrido. Desde Favoritos se vuelve al detalle o se quita la entrada. Al guardar por primera vez sin sesión, un aviso explica que el favorito queda en el dispositivo.
-- Al ingresar se ofrece copiar los favoritos locales a la cuenta. Si se interrumpe la copia, el dispositivo conserva la lista hasta confirmar todos los envíos. Reintentar mantiene una sola entrada por favorito.
-
-### F13 — Perfil e historial
-
-- Perfil muestra foto o avatar genérico, nombre, correo y rol. El usuario puede editar el nombre y sustituir o quitar su foto. Correo y rol son de solo lectura. Una foto inválida se rechaza y se informa del motivo.
-- El pasajero ve sus vínculos cerrados y solicitudes por fecha. Si el historial está vacío, la pantalla lo indica. Privacidad explica qué datos conserva la aplicación.
-
-### F14 — Preferencias y avisos
-
-- El usuario puede elegir español o inglés y tema de sistema, claro u oscuro. El idioma se guarda en el dispositivo y, con sesión, también en la cuenta.
-- Se habilitan por separado los avisos de cambios en líneas favoritas y en solicitudes propias. El permiso nativo se solicita al activar el primer tipo. Los avisos dependen de las consultas de las vistas activas y en web aparecen dentro de la aplicación.
-
-### F15 — Seguridad de la cuenta
-
-- Al confirmar la contraseña actual y una nueva válida, se mantiene la sesión que hizo el cambio y se invalidan las anteriores. Si la actual es incorrecta, el servidor responde HTTP 403 y el usuario puede corregirla dentro de la misma sesión.
-
-### F16 — Estado de líneas
-
-- Cuando el administrador confirma uno de los tres estados de F4, el catálogo público refleja el cambio en la siguiente consulta. Quedan registrados el estado anterior, el nuevo, el autor y la fecha. La vista administrativa muestra quién hizo el último cambio y cuándo. Un pasajero o conductor recibe HTTP 403 si intenta modificarlo.
+- Crear conductores, consultar cuentas y activar o desactivar usuarios. Cambiar roles solo desde administración, guardando actor, fecha y cambio. Ninguna respuesta revela contraseñas ni hashes.
+- Se rechaza correo duplicado y rol desconocido. No se puede desactivar al último administrador activo ni cambiar el rol o desactivar a un conductor con servicio activo. Las rutas protegidas comprueban el estado vigente de la cuenta aunque el token siga válido.
 
 ## 4. Requerimientos no funcionales
 
-| ID | Tipo | Criterio de aceptación |
-|---|---|---|
-| R1 | Rendimiento · RNF03 | Con 20 usuarios concurrentes y 100 operaciones válidas por tipo, el percentil 95 de consulta de catálogo y creación o lectura de solicitudes debe ser ≤ 2 s, excluida la carga inicial. Una solicitud debe aparecer en la bandeja abierta y conectada en ≤ 7 s. Medición pendiente. |
-| R2 | Seguridad | Contraseñas con bcrypt, JWT en cookie HttpOnly en web y SecureStore en móvil. Cada petición protegida verifica vigencia, versión de sesión y permisos. En producción se exige HTTPS y una clave JWT de al menos 32 caracteres. |
-| R3 | Accesibilidad | Objetivo WCAG 2.2 AA en ambos temas. Contraste mínimo de 4,5:1 en texto normal y 3:1 en texto grande y bordes de controles. Áreas táctiles ≥ 48 × 48 pt, texto usable al 200 %, foco visible, navegación por teclado y nombre, rol y estado accesibles. Validación integral pendiente. |
-| R4 | Consistencia | Los reintentos de F9 y F12 deben conservar un único registro. Las migraciones deben poder repetirse sobre bases existentes sin perder datos. |
-| R5 | Movimiento | Animar solo `transform` y `opacity`. Pulsación de 120 ms, transición de pantalla de 180 ms y cambio de tema de 220 ms. Con movimiento reducido se admite un fundido de 120 ms o un cambio inmediato. |
-| R6 | Privacidad | Solo el titular puede leer su foto e historial. La API valida la firma JPEG o PNG y rechaza fotos de más de 512 KB decodificados. |
+| ID | Tipo | Criterio de aceptación | Estado |
+|---|---|---|---|
+| R1 | Rendimiento · RNF03 | Con 20 usuarios concurrentes y 100 operaciones por tipo, p95 ≤ 2 s en catálogo y en crear o leer solicitudes; propagación a la bandeja ≤ 7 s. | Medición pendiente |
+| R2 | Seguridad · RNF01/02 | bcrypt factor 12, JWT en cookie HttpOnly (web) y SecureStore (móvil), versión de sesión, HTTPS y clave ≥ 32 caracteres en producción. Sin secretos en respuestas ni registros. | Hecho |
+| R3 | Accesibilidad · RNF05 | WCAG 2.2 AA en ambos temas, objetivos táctiles ≥ 48 pt, foco visible, nada solo por color, texto usable al 150 % (ERS) y al 200 % (v2). | Hecho en web; falta lector de pantalla en dispositivo |
+| R4 | Consistencia · RNF04 | Reintentos idempotentes y un vínculo y una solicitud activa como máximo; migraciones repetibles. | Hecho |
+| R5 | Recuperación · RNF06 | Petición sin respuesta en 10 s muestra error recuperable sin duplicar solicitudes. | Hecho |
+| R6 | Reproducibilidad · RNF07 | README con instalación, migración, datos de prueba y arranque; rama y commit de la versión probada. | Revisar al cerrar v3 |
+| R7 | Movimiento | Solo `transform` y `opacity`. Panel 320 ms con curva de cajón; inicio de marca ~2,4 s; scroll ligado al dedo. Con movimiento reducido, fundidos o cambio inmediato. | Hecho |
+| R8 | Datos GTFS | Trazados a ≤ 5 m del GTFS original (Douglas-Peucker) y paraderos a ≤ 40 m de su trazado. | Hecho y probado |
 
 ## 5. Stack y arquitectura
 
-- **Cliente.** React Native, Expo SDK 58 y TypeScript. La barra de pasajero reúne Líneas, Mapa, Favoritos y Mi viaje. Perfil se abre desde la cabecera. El diseño Letrero usa Barlow Condensed para códigos y destinos, Barlow para lectura y los pasos de Boleto para Vincular, Destino y Comprobante. Los colores se centralizan en `front/src/theme.tsx` y los textos pasan por `t()` con diccionarios por pantalla.
-- **Servidor y despliegue.** API REST con Express sobre Node.js 24+ y SQLite mediante `node:sqlite`. En desarrollo, Expo y la API se ejecutan como procesos separados. Un teléfono con Expo Go se conecta a la API por la red local.
-- **Integraciones.** MapLibre dibuja el mapa con OpenFreeMap y sirve el worker web desde el mismo origen. Expo ImagePicker permite elegir fotos y Expo Notifications entrega avisos locales en móvil.
-- **Catálogo.** El extractor procesa los CSV GTFS descomprimidos de la DTPR y elige el viaje con más paraderos por ruta y sentido. El seed carga el JSON versionado. Cada línea agrupa recorridos y variantes. Cada recorrido ordena sus paraderos por ocurrencia.
-- **Operación.** Un servicio asocia vehículo, conductor y recorrido. El vínculo conecta al pasajero con ese servicio y la solicitud apunta a una ocurrencia de destino. Las posiciones conservan el origen de cada muestra.
-- **Cuenta y administración.** Cada favorito pertenece a un usuario y referencia una línea y, opcionalmente, un recorrido. La cuenta agrupa foto, preferencias y versión de sesión. Cada cambio de estado enlaza la línea con el administrador responsable.
+- **Cliente.** React Native, Expo SDK 58 y TypeScript. Barra con Mapa, Líneas, Favoritos y Mi viaje; Perfil o Ajustes desde la cabecera. Diseño Costa (claro) y Pulso (oscuro) con la marca «V voybus», Barlow y Barlow Condensed. Colores en `front/src/theme.tsx`, movimiento en `front/src/motion.ts`, textos con `t()` por pantalla.
+- **Mapa.** MapLibre: componente nativo en web y WebView en Expo Go, con la misma lógica de capas (`mapLayers.ts`). Ubicación con `expo-location` (aprobada el 25-11-2026) y la geolocalización del navegador en web.
+- **Servidor.** API REST con Express sobre Node.js 24+ y SQLite (`node:sqlite`). En desarrollo, Expo y la API corren por separado y el teléfono se conecta por la red local.
+- **Catálogo.** `backend/scripts/gtfs-extract.cjs` procesa los CSV de la DTPR y simplifica cada trazado a 5 m. El simulador mueve cuatro micros virtuales por línea sobre esos trazados y respeta las suspensiones manuales.
 
 ## 6. Restricciones
 
-- La fuente es DTPR, GTFS `Antofagasta20250307`, con 13 líneas base y 18 variantes. Su calendario terminó el 31 de diciembre de 2025. La interfaz debe identificar esa versión. Los estados operativos los mantiene el administrador.
-- Los vehículos, conductores y servicios de demostración usan recorridos reales y posiciones simuladas. El seed de demostración está bloqueado en producción.
-- Las dependencias nuevas requieren aprobación. La validación formal del cliente y la prueba en teléfono físico siguen pendientes según el [README](../README.md).
+- La fuente es DTPR, GTFS `Antofagasta20250307`: 13 líneas base y 18 variantes, con vigencia oficial vencida el 31-12-2025. Es la última versión publicada.
+- La línea 129 tiene un desvío transitorio anunciado por la Seremi (norte a sur, 09/11/2026 a 31/12/2026) que el GTFS no incluye; la app lo avisa sin alterar el trazado.
+- Posiciones simuladas e identificadas como tales. El seed de demostración está bloqueado en producción.
+- Dependencias nuevas requieren aprobación del usuario.
 
 ## 7. Fuera de alcance
 
 - GPS real, pagos, timbre físico y notificaciones push remotas.
-- Líneas 106, 204 y 214, ausentes del GTFS de referencia, e idiomas adicionales a español e inglés.
-- Cancelación de solicitudes, desvinculación manual, gestión de servicios por el conductor, reconocimiento y atención de solicitudes, y el resto de la administración prevista por la ERS.
+- Líneas 106, 204 y 214, ausentes del GTFS, e idiomas distintos de español e inglés.
+- Marcar como eléctrica cada micro individual: el GTFS solo permite marcarlo por línea.
 
 ## 8. Preguntas abiertas
 
-- ¿Deben las variantes conservar el color de su línea base o usar su propio `route_color` del GTFS? En v2 heredan el color base. Por ejemplo, 103N usa el azul de la 103 (`#005BAA`), aunque el GTFS asigna verde a la variante (`#066A40`). [Diseño v2, §10](designs/voybus-v2-design.md#10-preguntas)
+- ¿Las variantes usan el color de su línea base o su propio `route_color` del GTFS? Hoy heredan el color base.
+- ¿Los umbrales de zoom (12,5 y 14) son cómodos en el teléfono? Se ajustan tras la prueba del usuario.
+- ¿La app debe permitir la orientación horizontal en el teléfono? `app.json` la fija en vertical.
