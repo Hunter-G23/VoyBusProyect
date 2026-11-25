@@ -3,14 +3,14 @@ import { Animated, Platform, Text, View } from 'react-native';
 import type { NotificationType, TripHistoryResponse, User } from './types';
 import { API_URL, api, apiJson, ApiError } from './api';
 import { session } from './storage';
-import { Avatar, Back, Button, Empty, Field, Loading, MenuRow, Notice, Segmented, useStyles } from './ui';
+import { Avatar, Back, Button, Empty, Field, SkeletonRows, MenuRow, Notice, Segmented, useStyles } from './ui';
 import { useTheme } from './theme';
 import { useLanguage } from './i18n';
 import './i18n/profile';
 import { chooseAndUploadPhoto } from './PhotoStep';
 import { useNotificationPreferences } from './notify';
 import { useResource } from './useResource';
-import { useFadeSlideEntrance, useListEntrance } from './motion';
+import { useFadeSlideEntrance, useListEntrance, ScrollReveal } from './motion';
 export type ProfileProps = { user: User; onUserChange: (user: User) => void; onLogout: () => Promise<void>; onBack: () => void; onFavorites?: () => void };
 type Section = 'edit' | 'history' | 'preferences' | 'privacy' | 'security';
 export function Profile({ user, onUserChange, onLogout, onBack, onFavorites }: ProfileProps) {
@@ -76,22 +76,19 @@ export function Profile({ user, onUserChange, onLogout, onBack, onFavorites }: P
     </Animated.View>}
     {section === 'history' && <Animated.View style={[{ gap: 16 }, sectionEntrance]}>
       <Text accessibilityRole="header" style={styles.section}>{t('profile.history')}</Text>
-      {history.loading && !history.data && !history.error && <Loading />}
-      {!!history.error && <Notice message={history.error} stale={!!history.data} retry={() => void history.reload()} />}
+      {history.loading && !history.data && !history.error && <SkeletonRows count={3} />}
+      {!!history.error && <Notice message={history.error} stale={!!history.data} retry={history.reload} />}
       {history.data && !history.data.vinculos.length && !history.data.solicitudes.length && <Empty title={t('profile.emptyHistory')} text={t('profile.historyHelp')} />}
-      {history.data?.vinculos.map((link, index) => <Animated.View key={`link-${link.id}`} style={[styles.listRow, historyEntrance(index)]}><View style={styles.grow}>
+      {history.data?.vinculos.map((link, index) => <ScrollReveal key={`link-${link.id}`}><Animated.View style={[styles.listRow, historyEntrance(index)]}><View style={styles.grow}>
         <Text style={styles.label}>{t('profile.closed', { line: link.linea, direction: link.sentido })}</Text><Text style={styles.small}>{t('profile.historyDate', { date: date(link.fin ?? link.inicio) })}</Text>
-      </View></Animated.View>)}
-      {history.data?.solicitudes.map((request, index) => <Animated.View key={`request-${request.id}`} style={[styles.listRow, historyEntrance(linkCount + index)]}><View style={styles.grow}>
+      </View></Animated.View></ScrollReveal>)}
+      {history.data?.solicitudes.map((request, index) => <ScrollReveal key={`request-${request.id}`}><Animated.View style={[styles.listRow, historyEntrance(linkCount + index)]}><View style={styles.grow}>
         <Text style={styles.label}>{t('profile.historyRequest', { id: request.id, name: request.paradero })}</Text><Text style={styles.body}>{t(`profile.state.${request.estado}`)}</Text><Text style={styles.small}>{t('profile.historyDate', { date: date(request.creada_en) })}</Text>
-      </View></Animated.View>)}
+      </View></Animated.View></ScrollReveal>)}
     </Animated.View>}
     {section === 'preferences' && <Animated.View style={[{ gap: 16 }, sectionEntrance]}>
       <Text accessibilityRole="header" style={styles.section}>{t('profile.preferences')}</Text>
-      <Text style={styles.label}>{t('profile.language')}</Text>
-      <Segmented label={t('profile.language')} value={language} disabled={busy} onChange={value => void perform(() => setLanguage(value))} options={[{ value: 'es', label: t('profile.spanish') }, { value: 'en', label: t('profile.english') }]} />
-      <Text style={styles.label}>{t('profile.theme')}</Text>
-      <Segmented label={t('profile.theme')} value={theme.preference} disabled={busy} onChange={value => void perform(() => theme.setPreference(value))} options={[{ value: 'system', label: t('profile.system') }, { value: 'light', label: t('profile.light') }, { value: 'dark', label: t('profile.dark') }]} />
+      <AppearancePreferences busy={busy} perform={perform} />
       <Text style={styles.label}>{t('profile.notifications')}</Text>
       {(['estado_linea_favorita', 'solicitud'] as NotificationType[]).map(type => <View key={type} style={{ gap: 8 }}>
         <Text style={styles.body}>{t(type === 'solicitud' ? 'profile.requestNotifications' : 'profile.lineNotifications')}</Text>
@@ -110,5 +107,34 @@ export function Profile({ user, onUserChange, onLogout, onBack, onFavorites }: P
       <Button title={t('profile.changePassword')} onPress={() => void changePassword()} busy={busy} />
     </Animated.View>}
     <Button title={t('profile.logout')} onPress={() => void perform(onLogout)} busy={busy} secondary />
+  </View>;
+}
+
+/** Language and theme: stored on the device, so they also work without signing in. */
+export function AppearancePreferences({ busy, perform }: { busy: boolean; perform: (action: () => Promise<void>) => Promise<void> }) {
+  const theme = useTheme(); const styles = useStyles(); const { t, language, setLanguage } = useLanguage();
+  return <>
+    <Text style={styles.label}>{t('profile.language')}</Text>
+    <Segmented label={t('profile.language')} value={language} disabled={busy} onChange={value => void perform(() => setLanguage(value))} options={[{ value: 'es', label: t('profile.spanish') }, { value: 'en', label: t('profile.english') }]} />
+    <Text style={styles.label}>{t('profile.theme')}</Text>
+    <Segmented label={t('profile.theme')} value={theme.preference} disabled={busy} onChange={value => void perform(() => theme.setPreference(value))} options={[{ value: 'system', label: t('profile.system') }, { value: 'light', label: t('profile.light') }, { value: 'dark', label: t('profile.dark') }]} />
+  </>;
+}
+
+/** Settings for visitors without an account: appearance only (notifications and data need a session). */
+export function GuestSettings({ onBack, onLogin }: { onBack: () => void; onLogin: () => void }) {
+  const styles = useStyles(); const { t } = useLanguage();
+  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  async function perform(action: () => Promise<void>) {
+    if (busy) return; setBusy(true); setError('');
+    try { await action(); } catch (reason) { setError((reason as Error).message); } finally { setBusy(false); }
+  }
+  return <View style={styles.page}>
+    <Back onPress={onBack} />
+    <Text accessibilityRole="header" style={styles.title}>{t('profile.preferences')}</Text>
+    <AppearancePreferences busy={busy} perform={perform} />
+    {!!error && <Notice message={error} />}
+    <Text style={styles.small}>{t('profile.guestHelp')}</Text>
+    <Button secondary title={t('common.login')} onPress={onLogin} />
   </View>;
 }

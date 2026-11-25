@@ -16,8 +16,13 @@ test('administrator confirms status changes and sees the audit actor', async ({ 
   await expect(page.getByRole('button', { name: /^129,/ })).toBeVisible();
   await page.getByRole('button', { name: 'Estado de líneas', exact: true }).click();
   const restored = page.getByTestId('admin-line-129');
-  await restored.getByRole('radio', { name: 'Activa', exact: true }).click();
+  await restored.getByRole('radio', { name: 'Automático', exact: true }).click();
   await restored.getByRole('button', { name: 'Cambiar estado', exact: true }).click();
   await restored.getByRole('button', { name: 'Confirmar cambio', exact: true }).click();
-  await expect(restored.getByRole('radio', { name: 'Activa', exact: true })).toBeChecked();
+  await expect(restored.getByText('Estado guardado.', { exact: true })).toBeVisible();
+  await expect(restored.getByRole('button', { name: 'Cambiar estado', exact: true })).toBeDisabled();
+  await expect(restored.getByRole('radio', { name: 'Automático', exact: true })).toBeChecked();
+  // Back in automatic mode the simulated buses make the line active again.
+  await expect(restored.getByText('Activa', { exact: true })).toHaveCount(2);
+  await expect(restored.getByText('No activa', { exact: true })).toHaveCount(1);
 });

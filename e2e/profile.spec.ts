@@ -58,3 +58,16 @@ test('profile accepts a square photo and removes it', async ({ page }) => {
   await page.getByRole('button', { name: 'Quitar foto', exact: true }).click();
   await expect.poll(async () => (await page.request.get('http://localhost:3001/api/auth/me/foto')).status()).toBe(404);
 });
+
+test('visitors without an account can change theme and language from Settings', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Ajustes', exact: true }).click();
+  await page.getByRole('radio', { name: 'Oscuro', exact: true }).click();
+  await expect(page.getByRole('radio', { name: 'Oscuro', exact: true })).toBeChecked();
+  await page.getByRole('radio', { name: 'English', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Preferences', exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('radio', { name: 'Dark', exact: true })).toBeChecked();
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true }).first()).toBeVisible();
+});

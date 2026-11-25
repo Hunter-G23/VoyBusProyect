@@ -1,8 +1,9 @@
 export const common = {
   es: {
     "tabs.lines": "Líneas", "tabs.map": "Mapa", "tabs.favorites": "Favoritos", "tabs.trip": "Mi viaje",
+    city: "Antofagasta",
     sections: "Secciones", login: "Ingresar", logout: "Salir", profile: "Perfil", adminLines: "Estado de líneas",
-    back: "Volver", retry: "Volver a intentar", save: "Guardar", cancel: "Cancelar", remove: "Quitar", close: "Cerrar",
+    back: "Volver", retry: "Volver a intentar", save: "Guardar", cancel: "Cancelar", remove: "Quitar", close: "Cerrar", settings: "Ajustes",
     loading: "Cargando información…", stillLoading: "Sigue cargando…", stale: "Información sin actualizar.",
     error: "No pudimos completar la operación. Vuelve a intentar.",
     storageError: "No pudimos guardar tus preferencias. Vuelve a intentar.",
@@ -21,8 +22,9 @@ export const common = {
   },
   en: {
     "tabs.lines": "Lines", "tabs.map": "Map", "tabs.favorites": "Favorites", "tabs.trip": "My trip",
+    city: "Antofagasta",
     sections: "Sections", login: "Sign in", logout: "Sign out", profile: "Profile", adminLines: "Line status",
-    back: "Back", retry: "Try again", save: "Save", cancel: "Cancel", remove: "Remove", close: "Close",
+    back: "Back", retry: "Try again", save: "Save", cancel: "Cancel", remove: "Remove", close: "Close", settings: "Settings",
     loading: "Loading information…", stillLoading: "Still loading…", stale: "Information not updated.",
     error: "We could not complete this action. Please try again.",
     storageError: "We could not save your preferences. Please try again.",

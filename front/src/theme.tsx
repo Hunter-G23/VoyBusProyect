@@ -6,17 +6,23 @@ import { motion, useNativeDriver, useReducedMotion } from "./motion";
 export type ThemePreference = "system" | "light" | "dark";
 export type ThemeScheme = "light" | "dark";
 export const light = {
-  background: "#F7F7F0", paper: "#FFFFFF", ink: "#132F35", muted: "#526769",
-  action: "#12634D", onAction: "#FFFFFF", actionPressed: "#0D4B3B", border: "#71867C",
-  signal: "#F6CE55", error: "#9B2C2C", surface: "#E8EEE9",
-  plate: "#132F35", onPlate: "#F7F7F0", plateMuted: "#D6E8DE", signalInk: "#132F35",
+  background: "#FFFEFA", paper: "#FFFEFA", ink: "#122B38", muted: "#4E6167",
+  action: "#123FC4", onAction: "#FFFFFF", actionPressed: "#0D319A", border: "#738285",
+  signal: "#FFD45E", error: "#9B2C2C", surface: "#EDF3EC", edge: "#DCE3DE",
+  plate: "#122B38", onPlate: "#FFFEFA", plateMuted: "#D7E7F8", signalInk: "#122B38",
+  activeInk: "#135C3F", activeSurface: "#E1F3E9", inactiveSurface: "#FBEAEB",
+  temporaryInk: "#664703", temporarySurface: "#FFF1CD",
+  sea: "#B2D9D9", coral: "#DE7459",
 } as const;
 export type ThemeTokens = { [K in keyof typeof light]: string };
 export const dark: ThemeTokens = {
-  background: "#0C1C20", paper: "#132F35", ink: "#F7F7F0", muted: "#A9BDB8",
-  action: "#6FD3AE", onAction: "#0C1C20", actionPressed: "#4FB892", border: "#8FA79D",
-  signal: "#F6CE55", error: "#F2A0A0", surface: "#1E3A40",
-  plate: "#132F35", onPlate: "#F7F7F0", plateMuted: "#D6E8DE", signalInk: "#132F35",
+  background: "#0D191F", paper: "#19262E", ink: "#F2F5EF", muted: "#B0BDC3",
+  action: "#C8F477", onAction: "#0D191F", actionPressed: "#AEDB5D", border: "#778A95",
+  signal: "#C8F477", error: "#F2A0A0", surface: "#21323C", edge: "#2B3C46",
+  plate: "#19262E", onPlate: "#F2F5EF", plateMuted: "#C9DAF1", signalInk: "#0D191F",
+  activeInk: "#A6E8C7", activeSurface: "#1C3A33", inactiveSurface: "#43282E",
+  temporaryInk: "#F0C58A", temporarySurface: "#45351E",
+  sea: "#152B36", coral: "#E48162",
 };
 export const themes = { light, dark };
 const fontNames = {

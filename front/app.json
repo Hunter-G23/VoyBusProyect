@@ -26,7 +26,13 @@
           "cameraPermission": "VoyBus usa la cámara solo para tomar la foto de tu perfil."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "VoyBus usa tu ubicación solo para centrar el mapa donde estás."
+        }
+      ]
     ]
   }
 }

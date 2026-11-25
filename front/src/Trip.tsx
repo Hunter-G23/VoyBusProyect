@@ -5,8 +5,8 @@ import { api, ApiError } from './api';
 import { storage } from './storage';
 import { useResource } from './useResource';
 import type { Attempt, CurrentTrip, Request, Stop, User } from './types';
-import { Button, Empty, Field, Icon, Loading, Notice, Steps, useStyles } from './ui';
-import { focusRing, ScalePressable, StepTransition, type PressState } from './motion';
+import { Button, Empty, Field, Icon, Loading, SkeletonRows, Notice, Steps, useStyles } from './ui';
+import { focusRing, ScalePressable, ScrollReveal, StepTransition, type PressState } from './motion';
 import { useTheme } from './theme';
 import { useLanguage } from './i18n';
 import './i18n/trip';
@@ -97,7 +97,7 @@ function PassengerTrip({ user }: { user: User }) {
     <Text style={styles.subtitle}>{t(link ? 'trip.linkedHelp' : 'trip.board')}</Text>
     <Steps current={step} />
     {current.loading && !current.data && !current.error && <Loading />}
-    {!!current.error && <Notice message={current.error} stale={!!current.data} retry={() => void current.reload()} />}
+    {!!current.error && <Notice message={current.error} stale={!!current.data} retry={current.reload} />}
     <StepTransition stepKey={step}><View style={{ gap: 22 }}>
       {current.data && !link && <View style={styles.panel}>
         <Icon name="bus-outline" size={30} color={theme.action} /><Text style={styles.section}>{t('trip.link')}</Text>
@@ -121,17 +121,17 @@ function PassengerTrip({ user }: { user: User }) {
         </View>}
         {link.servicio_estado !== 'activo' ? <Empty title={t('trip.ended')} text={t('trip.endedHelp')} /> : !hasActive && <>
           <Text accessibilityRole="header" style={styles.section}>{t('trip.where')}</Text><Text style={styles.subtitle}>{t('trip.chooseHelp')}</Text>
-          {stops.loading && !stops.data && !stops.error && <Loading />}
-          {!!stops.error && <Notice message={stops.error} stale={!!stops.data} retry={() => void stops.reload()} />}
+          {stops.loading && !stops.data && !stops.error && <SkeletonRows count={4} />}
+          {!!stops.error && <Notice message={stops.error} stale={!!stops.data} retry={stops.reload} />}
           {stops.data?.paraderos.length === 0 && <Empty title={t('trip.empty')} text={t('trip.emptyHelp')} />}
           <View accessibilityRole="radiogroup" accessibilityLabel={t('trip.where')} style={styles.list}>
             {stops.data?.paraderos.map(stop => {
               const passed = stop.posicion <= link.ultima_posicion; const checked = selected === stop.id; const disabled = passed || busy || !!attempt;
-              return <ScalePressable key={stop.id} accessibilityRole="radio" accessibilityLabel={t('trip.radio', { code: stop.codigo, name: stop.nombre, passed: passed ? t('trip.passedSuffix') : '' })} accessibilityState={{ checked, disabled }} disabled={disabled} onPress={() => setSelected(stop.id)}
+              return <ScrollReveal key={stop.id}><ScalePressable accessibilityRole="radio" accessibilityLabel={t('trip.radio', { code: stop.codigo, name: stop.nombre, passed: passed ? t('trip.passedSuffix') : '' })} accessibilityState={{ checked, disabled }} disabled={disabled} onPress={() => setSelected(stop.id)}
                 style={({ focused, pressed }: PressState) => [styles.listRow, { backgroundColor: checked || pressed ? theme.surface : theme.background }, focusRing(focused, theme.action)]}>
                 <Icon name={passed ? 'checkmark-circle-outline' : checked ? 'radio-button-on' : 'radio-button-off'} color={theme.action} />
                 <View style={styles.grow}><Text style={styles.label}>{stop.nombre}</Text><Text style={styles.small}>{stop.codigo} · {passed ? t('trip.passed') : t('trip.stop', { position: stop.posicion })}</Text></View>
-              </ScalePressable>;
+              </ScalePressable></ScrollReveal>;
             })}
           </View>
           {attempt && <Text style={styles.body}>{t('trip.uncertain')}</Text>}

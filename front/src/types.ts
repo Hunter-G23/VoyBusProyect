@@ -15,6 +15,7 @@ export type Line = {
   id: number; codigo: string; nombre: string;
   color?: string; color_texto?: string; electrica?: boolean | 0 | 1;
   estado?: LineStatus; fuente?: string;
+  modo_estado?: 'auto' | 'manual';
 };
 export type Route = {
   id: number;
@@ -91,12 +92,15 @@ export type VehiclePosition = {
 export type VehicleInCirculation = {
   color?: string;
   color_texto?: string;
+  electrica?: Line['electrica'];
   servicio_id: number;
   vehiculo: string;
   linea: string;
   recorrido_id: number;
   sentido: string;
   posicion: VehiclePosition | null;
+  simulado?: boolean;
+  proximo_paradero_id?: number | null;
 };
 export type VehiclesResponse = {
   fuente: "simulacion" | "gps";

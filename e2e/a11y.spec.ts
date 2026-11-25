@@ -19,7 +19,10 @@ test('390px controls have 48px targets across passenger forms and screens', asyn
   await page.getByRole('button', { name: /^102,/ }).click(); await page.getByRole('radio').first().click();
   await expect(page.getByTestId('ordered-stops')).toBeVisible(); await targets(page);
   await page.getByRole('tab', { name: 'Mapa', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Posiciones por vehículo', exact: true })).toBeVisible(); await targets(page);
+  await page.getByRole('button', { name: 'Buscar paradero', exact: true }).click();
+  await expect(page.getByRole('searchbox', { name: 'Nombre o código del paradero' })).toBeVisible(); await targets(page);
+  await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Posiciones por micro', exact: true })).toBeVisible(); await targets(page);
   await page.getByRole('tab', { name: 'Favoritos', exact: true }).click(); await targets(page);
   await page.getByRole('button', { name: 'Ingresar', exact: true }).first().click(); await targets(page);
   await page.getByRole('button', { name: 'Crear una cuenta', exact: true }).click(); await targets(page);
@@ -53,6 +56,9 @@ test('keyboard focus is visible and reduced motion preserves navigation', async 
   await expect(page.getByRole('heading', { name: 'Líneas', exact: true })).toBeVisible();
   await page.keyboard.press('Tab');
   await expect.poll(() => page.evaluate(() => { const style = getComputedStyle(document.activeElement!); return style.outlineStyle === 'solid' && parseFloat(style.outlineWidth) >= 3; })).toBe(true);
+  // First stop is the settings gear; the next one is Ingresar.
+  await expect(page.getByRole('button', { name: 'Ajustes', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
   await page.keyboard.press('Enter'); await expect(page.getByLabel('Correo electrónico', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Volver', exact: true }).click();
   await page.getByRole('button', { name: /^102,/ }).click(); await page.getByRole('radio').first().click();
@@ -93,7 +99,7 @@ test('light and dark token pairs meet text and control contrast thresholds', () 
   for (const name of ['light', 'dark']) {
     const body = source.match(new RegExp(`export const ${name}[^=]*= \\{([\\s\\S]*?)\\}`))![1];
     const tokens = Object.fromEntries([...body.matchAll(/(\w+): "(#[0-9a-fA-F]{6})"/g)].map(match => [match[1], match[2]]));
-    for (const [foreground, background] of [['ink', 'background'], ['muted', 'paper'], ['muted', 'background'], ['onAction', 'action'], ['onAction', 'actionPressed'], ['error', 'paper'], ['signalInk', 'signal'], ['onPlate', 'plate'], ['plateMuted', 'plate']]) expect(ratio(tokens[foreground], tokens[background]), `${name}: ${foreground}/${background}`).toBeGreaterThanOrEqual(4.5);
+    for (const [foreground, background] of [['ink', 'background'], ['muted', 'paper'], ['muted', 'background'], ['muted', 'surface'], ['action', 'paper'], ['onAction', 'action'], ['onAction', 'actionPressed'], ['error', 'paper'], ['signalInk', 'signal'], ['onPlate', 'plate'], ['plateMuted', 'plate']]) expect(ratio(tokens[foreground], tokens[background]), `${name}: ${foreground}/${background}`).toBeGreaterThanOrEqual(4.5);
     for (const background of ['paper', 'background']) expect(ratio(tokens.border, tokens[background])).toBeGreaterThanOrEqual(3);
   }
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator, Animated, Image, Platform, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Animated, Easing, Image, Platform, StyleSheet, Text, TextInput, View,
   type StyleProp, type TextInputProps, type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,20 +12,20 @@ import type { Line, LineStatus } from "./types";
 // Compatibility for screens restyled by later units. New screens use useTheme().
 export const colors = {
   ...light, green: light.action, greenPressed: light.actionPressed,
-  line: "#D6DFD9", yellow: light.signal, onDark: "#D6E8DE",
+  line: light.edge, yellow: light.signal, onDark: light.plateMuted,
 };
 export const styles = StyleSheet.create({
-  page: { gap: 22, padding: 20, paddingBottom: 40 },
-  title: { fontSize: 42, fontWeight: "700", color: colors.ink, letterSpacing: -0.7 },
+  page: { gap: 16, padding: 16, paddingBottom: 28 },
+  title: { fontSize: 28, lineHeight: 34, fontWeight: "700", color: colors.ink },
   subtitle: { fontSize: 16, lineHeight: 24, color: colors.muted },
-  section: { fontSize: 28, fontWeight: "700", color: colors.ink },
+  section: { fontSize: 22, lineHeight: 28, fontWeight: "700", color: colors.ink },
   body: { fontSize: 16, lineHeight: 24, color: colors.ink },
   small: { fontSize: 14, lineHeight: 20, color: colors.muted },
   row: { flexDirection: "row", alignItems: "center", gap: 14 },
   grow: { flex: 1 },
   list: { borderTopWidth: 1, borderTopColor: colors.line },
-  listRow: { minHeight: 78, paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: colors.line, flexDirection: "row", alignItems: "center", gap: 14 },
-  panel: { backgroundColor: colors.paper, borderRadius: 12, padding: 22, gap: 14 },
+  listRow: { minHeight: 60, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line, flexDirection: "row", alignItems: "center", gap: 12 },
+  panel: { backgroundColor: colors.paper, borderRadius: 12, padding: 16, gap: 12 },
   label: { fontSize: 16, fontWeight: "600", color: colors.ink },
   code: { backgroundColor: colors.ink, color: "#FFFFFF", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 6, fontWeight: "700", fontSize: 24, overflow: "hidden" },
 });
@@ -35,33 +35,33 @@ export function useStyles() {
   return {
     ...styles,
     page: { ...styles.page, minWidth: 0, paddingHorizontal: 16 },
-    title: { ...styles.title, color: theme.ink, fontFamily: theme.fonts.display },
-    section: { ...styles.section, color: theme.ink, fontFamily: theme.fonts.heading, flexShrink: 1 },
+    title: { ...styles.title, color: theme.ink, fontFamily: theme.fonts.bold, fontWeight: theme.fonts.bold ? undefined : styles.title.fontWeight },
+    section: { ...styles.section, color: theme.ink, fontFamily: theme.fonts.bold, fontWeight: theme.fonts.bold ? undefined : styles.section.fontWeight, flexShrink: 1 },
     body: { ...styles.body, color: theme.ink, fontFamily: theme.fonts.body },
     subtitle: { ...styles.subtitle, color: theme.muted, fontFamily: theme.fonts.body },
     small: { ...styles.small, color: theme.muted, fontFamily: theme.fonts.body },
     label: { ...styles.label, color: theme.ink, fontFamily: theme.fonts.semibold },
     row: { ...styles.row, flexWrap: "wrap" as const },
     grow: { flex: 1, minWidth: 0 },
-    list: { ...styles.list, borderTopColor: theme.border },
-    listRow: { ...styles.listRow, minWidth: 48, borderBottomColor: theme.border },
+    list: { ...styles.list, borderTopColor: theme.edge },
+    listRow: { ...styles.listRow, minWidth: 48, borderBottomColor: theme.edge },
     panel: { ...styles.panel, padding: 16, backgroundColor: theme.paper },
   };
 }
-export function Segmented<T extends string | number>({ label, options, value, onChange, disabled = false }: {
-  label: string; options: { value: T; label: string }[]; value: T; onChange: (value: T) => void; disabled?: boolean;
+export function Segmented<T extends string | number>({ label, options, value, onChange, disabled = false, compact = false }: {
+  label: string; options: { value: T; label: string }[]; value: T; onChange: (value: T) => void; disabled?: boolean; compact?: boolean;
 }) {
   const theme = useTheme();
   return <View accessibilityRole="radiogroup" accessibilityLabel={label} style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
     {options.map((option) => <ScalePressable key={option.value} accessibilityRole="radio"
       accessibilityLabel={option.label} accessibilityState={{ checked: option.value === value, disabled }}
       disabled={disabled} onPress={() => onChange(option.value)}
-      style={({ focused, pressed }: PressState) => [{ minHeight: 48, minWidth: 48, padding: 10, borderRadius: 6,
-        borderWidth: 2, borderColor: option.value === value ? theme.action : theme.border,
+      style={({ focused, pressed }: PressState) => [{ minHeight: 48, minWidth: 48, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8,
+        borderWidth: 1, borderColor: option.value === value ? theme.action : theme.border,
         backgroundColor: option.value === value ? theme.action : pressed ? theme.surface : theme.paper,
         flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%" }, focusRing(focused, theme.action)]}>
-      <Icon name={option.value === value ? "radio-button-on" : "radio-button-off"} size={18} color={option.value === value ? theme.onAction : theme.ink} />
-      <Text style={{ color: option.value === value ? theme.onAction : theme.ink, fontFamily: theme.fonts.semibold, fontSize: 16, flexShrink: 1 }}>{option.label}</Text>
+      {!compact && <Icon name={option.value === value ? "radio-button-on" : "radio-button-off"} size={18} color={option.value === value ? theme.onAction : theme.ink} />}
+      <Text style={{ color: option.value === value ? theme.onAction : theme.ink, fontFamily: theme.fonts.semibold, fontSize: compact ? 14 : 16, flexShrink: 1 }}>{option.label}</Text>
     </ScalePressable>)}
   </View>;
 }
@@ -79,13 +79,13 @@ export type ButtonProps = {
 export function Button({ title, onPress, busy = false, disabled = false, secondary = false, accessibilityLabel, style, expanded, leading }: ButtonProps) {
   const theme = useTheme();
   const reduced = useReducedMotion();
-  const label = <Text style={{ fontFamily: theme.fonts.heading, fontSize: 24, fontWeight: theme.fonts.heading ? undefined : "700",
+  const label = <Text style={{ fontFamily: theme.fonts.semibold, fontSize: 16, fontWeight: theme.fonts.semibold ? undefined : "600",
     color: secondary ? theme.ink : theme.onAction, textAlign: "center", opacity: busy ? 0 : 1, flexShrink: leading ? 1 : undefined }}>{title}</Text>;
   return <ScalePressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title}
     accessibilityState={{ disabled: disabled || busy, busy, expanded }} disabled={disabled || busy} onPress={onPress}
     style={({ pressed, focused, hovered }: PressState) => [{
-      minHeight: secondary ? 56 : 66, minWidth: 48, paddingHorizontal: 20, paddingVertical: 12,
-      borderRadius: 12, borderWidth: 2,
+      minHeight: 48, minWidth: 48, paddingHorizontal: 16, paddingVertical: 10,
+      borderRadius: 8, borderWidth: 1,
       borderColor: secondary ? theme.border : (pressed ? theme.actionPressed : theme.action),
       backgroundColor: secondary ? theme.surface : pressed ? theme.actionPressed : theme.action,
       alignItems: "center", justifyContent: "center", opacity: disabled ? 0.65 : 1,
@@ -139,8 +139,8 @@ export function MenuRow({ title, icon, onPress, expanded }: {
   return <ScalePressable accessibilityRole="button" accessibilityLabel={title}
     accessibilityState={{ expanded }} onPress={onPress}
     style={({ focused, pressed }: PressState) => [{
-      minHeight: 56, minWidth: 48, paddingHorizontal: 14, paddingVertical: 10,
-      borderRadius: 8, borderWidth: 2, borderColor: theme.border, backgroundColor: theme.paper,
+      minHeight: 48, minWidth: 48, paddingHorizontal: 12, paddingVertical: 8,
+      borderRadius: 8, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.paper,
       flexDirection: "row", alignItems: "center", gap: 10, opacity: pressed ? 0.9 : 1,
     }, focusRing(focused, theme.action)]}>
     <Icon name={icon} />
@@ -158,17 +158,31 @@ export function HeaderButton({ title, onPress, disabled = false, accessibilityLa
   title: string; onPress: () => void; disabled?: boolean; accessibilityLabel?: string; icon?: IconName;
 }) {
   const theme = useTheme();
+  // 48 pt touch target around a softer 40 pt pill that matches the Costa/Pulso header.
   return <ScalePressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title}
     accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    style={({ pressed, focused, hovered }: PressState) => [{
-      minHeight: 48, minWidth: 48, paddingVertical: 10, paddingHorizontal: 16,
-      borderWidth: 2, borderColor: theme.ink, borderRadius: 6, flexDirection: "row", gap: 8,
-      alignItems: "center", justifyContent: "center",
-      backgroundColor: pressed || hovered ? theme.surface : "transparent", opacity: disabled ? 0.65 : 1,
-    }, focusRing(focused, theme.action)]}>
-    {icon && <Icon name={icon} />}
-    <Text style={{ fontFamily: theme.fonts.semibold, fontSize: 16, color: theme.ink, flexShrink: 1 }}>{title}</Text>
+    style={({ focused }: PressState) => [{ minHeight: 48, minWidth: 48, justifyContent: "center", borderRadius: 24,
+      opacity: disabled ? 0.65 : 1 }, focusRing(focused, theme.action)]}>
+    {({ pressed, hovered }: PressState) => <View style={{ minHeight: 40, minWidth: 40, paddingHorizontal: title ? 14 : 10, borderRadius: 20,
+      flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center",
+      backgroundColor: pressed || hovered ? theme.edge : theme.surface }}>
+      {icon && <Icon name={icon} size={20} color={theme.action} />}
+      {!!title && <Text style={{ fontFamily: theme.fonts.semibold, fontWeight: theme.fonts.semibold ? undefined : "600", fontSize: 15,
+        color: theme.ink, flexShrink: 1 }}>{title}</Text>}
+    </View>}
   </ScalePressable>;
+}
+
+const logoMark = require("../assets/logo-mark.png");
+/** VoyBus mark (Costa "V") tinted with the theme action colour, plus the lowercase wordmark. */
+export function Brand({ size = 26 }: { size?: number }) {
+  const theme = useTheme();
+  return <View accessibilityRole="header" accessibilityLabel="VoyBus" style={{ flexDirection: "row", alignItems: "center", gap: size * 0.22 }}>
+    <Image source={logoMark} accessibilityIgnoresInvertColors
+      style={{ width: size * 1.17, height: size, tintColor: theme.action }} />
+    <Text style={{ fontFamily: theme.fonts.bold, fontWeight: theme.fonts.bold ? undefined : "800", fontStyle: "italic",
+      fontSize: size * 0.92, letterSpacing: -size * 0.06, color: theme.ink }}>voybus</Text>
+  </View>;
 }
 
 export function Field({ label, error, ...props }: TextInputProps & { label: string; error?: string }) {
@@ -183,7 +197,7 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
       onFocus={(event) => { setFocused(true); props.onFocus?.(event); }}
       onBlur={(event) => { setFocused(false); props.onBlur?.(event); }}
       style={[{
-        minHeight: 52, minWidth: 48, borderWidth: 2, borderColor: error ? theme.error : theme.border,
+        minHeight: 48, minWidth: 48, borderWidth: 1, borderColor: error ? theme.error : theme.border,
         borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontFamily: theme.fonts.body,
         fontSize: 16, color: theme.ink, backgroundColor: theme.paper,
       }, focusRing(focused, theme.action), props.style]} />
@@ -192,8 +206,13 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
 }
 
 export type NoticeKind = "error" | "stale" | "info" | "simulated";
-export function Notice({ message, retry, stale = false, kind }: { message: string; retry?: () => void; stale?: boolean; kind?: NoticeKind }) {
+export function Notice({ message, retry, stale = false, kind }: { message: string; retry?: () => unknown; stale?: boolean; kind?: NoticeKind }) {
   const theme = useTheme();
+  const [retrying, setRetrying] = useState(false);
+  async function runRetry() {
+    setRetrying(true);
+    try { await retry?.(); } finally { setRetrying(false); }
+  }
   const { t } = useLanguage();
   const type = kind ?? (stale ? "stale" : "error");
   const entrance = useFadeSlideEntrance(type, -4);
@@ -207,8 +226,41 @@ export function Notice({ message, retry, stale = false, kind }: { message: strin
         {type === "stale" ? `${t("common.stale")} ` : ""}{message}
       </Text>
     </View>
-    {retry && <Button title={t("common.retry")} onPress={retry} secondary />}
+    {retry && <Button title={t("common.retry")} onPress={() => void runRetry()} busy={retrying} secondary />}
   </Animated.View>;
+}
+
+/** Placeholder rows for lists while their data loads; same 300 ms delay as Loading so fast loads never flash. */
+export function SkeletonRows({ count = 3 }: { count?: number }) {
+  const theme = useTheme();
+  const { t } = useLanguage();
+  const reduced = useReducedMotion();
+  const { visible, slow } = useDelayedLoading(true);
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!visible || reduced) { pulse.setValue(1); return; }
+    const half = { duration: 800, easing: motion.themeEasing, useNativeDriver };
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 0.45, ...half }),
+      Animated.timing(pulse, { toValue: 1, ...half }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [visible, reduced, pulse]);
+  if (!visible) return null;
+  const block = (width: number | `${number}%`, height: number, radius = 6) =>
+    <View style={{ width, height, borderRadius: radius, backgroundColor: theme.edge }} />;
+  const label = slow ? t("common.stillLoading") : t("common.loading");
+  return <View accessibilityRole="progressbar" accessibilityLabel={label} accessibilityState={{ busy: true }} aria-busy
+    accessibilityLiveRegion="polite" style={{ gap: 14, paddingVertical: 8 }}>
+    <Animated.View style={{ gap: 14, opacity: pulse }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {Array.from({ length: count }, (_, index) => <View key={index} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        {block(36, 36, 8)}
+        <View style={{ flex: 1, gap: 8 }}>{block(`${72 - (index % 3) * 12}%`, 14)}{block("40%", 12)}</View>
+      </View>)}
+    </Animated.View>
+    {slow && <Text style={{ color: theme.muted, fontFamily: theme.fonts.body, fontSize: 14 }}>{t("common.stillLoading")}</Text>}
+  </View>;
 }
 
 export function Loading({ message, active = true }: { message?: string; active?: boolean }) {
@@ -231,7 +283,7 @@ export function Loading({ message, active = true }: { message?: string; active?:
 export function Empty({ title, text }: { title: string; text: string }) {
   const theme = useTheme();
   return <View style={{ gap: 10, paddingVertical: 24 }}>
-    <Text accessibilityRole="header" style={{ fontFamily: theme.fonts.heading, fontSize: 32, color: theme.ink }}>{title}</Text>
+    <Text accessibilityRole="header" style={{ fontFamily: theme.fonts.bold, fontSize: 22, color: theme.ink }}>{title}</Text>
     <Text style={{ fontFamily: theme.fonts.body, fontSize: 16, lineHeight: 24, color: theme.muted }}>{text}</Text>
   </View>;
 }
@@ -252,39 +304,89 @@ export const lineColors: Record<string, { background: string; text: string }> = 
 function statusLabelKey(status: LineStatus) {
   return `common.${status === "activa" ? "active" : status === "inactiva" ? "inactive" : "temporary"}`;
 }
+function hexLuminance(hex: string) {
+  const [r = 0, g = 0, b = 0] = [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16) / 255)
+    .map((value) => (value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4));
+  return r * 0.2126 + g * 0.7152 + b * 0.0722;
+}
+function hexContrast(a: string, b: string) {
+  const [hi = 0, lo = 0] = [hexLuminance(a), hexLuminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Status dot; an active line gets a soft "live" ring that keeps expanding and fading. */
+export function StatusDot({ color, live }: { color: string; live: boolean }) {
+  const reduced = useReducedMotion();
+  const ring = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!live || reduced) { ring.setValue(0); return; }
+    const loop = Animated.loop(Animated.timing(ring, { toValue: 1, duration: 1600, easing: Easing.out(Easing.quad), useNativeDriver }));
+    loop.start();
+    return () => loop.stop();
+  }, [live, reduced, ring]);
+  return <View style={{ width: 7, height: 7, alignItems: "center", justifyContent: "center" }}>
+    {live && !reduced && <Animated.View style={{ position: "absolute", width: 7, height: 7, borderRadius: 4, backgroundColor: color,
+      opacity: ring.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] }),
+      transform: [{ scale: ring.interpolate({ inputRange: [0, 1], outputRange: [1, 2.8] }) }] }} />}
+    <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: color }} />
+  </View>;
+}
 
 export function LinePlate({ line, onPress, subtitle, status }: { line: Line; onPress?: () => void; subtitle?: string; status?: LineStatus }) {
   const theme = useTheme();
   const { t } = useLanguage();
   const base = line.codigo.replace(/(?:N|Y\d+)$/, "");
   const official = lineColors[base];
-  const background = line.color && /^#[0-9a-f]{6}$/i.test(line.color) ? line.color : official?.background ?? light.ink;
-  const numberColor = line.color_texto && /^#[0-9a-f]{6}$/i.test(line.color_texto) ? line.color_texto : official?.text ?? light.paper;
+  const gtfsColor = line.color && /^#[0-9a-f]{6}$/i.test(line.color) ? line.color : official?.background ?? theme.ink;
+  const numberColor = theme.scheme === "dark"
+    ? theme.ink
+    : hexContrast(gtfsColor, theme.background) >= 4.5 ? gtfsColor : theme.ink;
   const electric = !!line.electrica || base === "E01";
   const label = [line.codigo, line.nombre];
   if (electric) label.push(t("common.electric"));
   if (status) label.push(t(statusLabelKey(status)));
   const content = <>
-    <View style={{ minWidth: 78, minHeight: 64, borderRadius: 6, backgroundColor: background,
-      borderWidth: theme.scheme === "dark" ? 2 : 0, borderColor: theme.border, justifyContent: "center", alignItems: "center", paddingHorizontal: 8 }}>
-      <Text style={{ fontFamily: theme.fonts.display, fontSize: 36, fontWeight: theme.fonts.display ? undefined : "800", color: numberColor }}>{line.codigo}</Text>
+    <View style={{
+      minWidth: 56, maxWidth: "100%", minHeight: 40,
+      borderLeftWidth: 3.5, borderLeftColor: gtfsColor,
+      justifyContent: "center", paddingLeft: 9, paddingVertical: 2,
+    }}>
+      <Text style={{
+        fontFamily: theme.fonts.heading, fontSize: 29, lineHeight: 32, letterSpacing: -0.8,
+        fontWeight: theme.fonts.heading ? undefined : "700", color: numberColor,
+      }}>{line.codigo}</Text>
     </View>
-    <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-      <Text style={{ fontFamily: theme.fonts.heading, fontSize: 28, color: theme.onPlate }}>{line.nombre}</Text>
-      {!!subtitle && <Text style={{ fontFamily: theme.fonts.body, fontSize: 15, color: theme.plateMuted }}>{subtitle}</Text>}
-      {electric && <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-        <Icon name="flash" size={18} color={theme.signal} />
-        <Text style={{ color: theme.onPlate, fontFamily: theme.fonts.semibold, fontSize: 15 }}>{t("common.electric")}</Text>
+    <View style={{ flexGrow: 1, flexBasis: 100, minWidth: 0, gap: 4 }}>
+      <Text style={{ fontFamily: theme.fonts.semibold, fontWeight: theme.fonts.semibold ? undefined : "600", fontSize: 16, lineHeight: 20, color: theme.ink }}>{line.nombre}</Text>
+      {!!subtitle && <Text style={{ fontFamily: theme.fonts.body, fontSize: 14, color: theme.muted }}>{subtitle}</Text>}
+      {(electric || !!status) && <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        {status && <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+          <StatusDot live={status === "activa"}
+            color={status === "activa" ? theme.activeInk : status === "inactiva" ? theme.muted : theme.temporaryInk} />
+          <Text style={{
+            fontFamily: theme.fonts.medium, fontSize: 13,
+            color: status === "temporal" ? theme.temporaryInk : theme.muted,
+          }}>{t(statusLabelKey(status))}</Text>
+        </View>}
+        {electric && <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+          <Icon name="flash" size={13} color={theme.scheme === "dark" ? theme.action : theme.activeInk} />
+          <Text style={{
+            flexShrink: 1, fontFamily: theme.fonts.semibold, fontSize: 13,
+            color: theme.scheme === "dark" ? theme.action : theme.activeInk,
+          }}>{t("common.electric")}</Text>
+        </View>}
       </View>}
-      {status && <StatusChip status={status} />}
     </View>
-    {!!onPress && <Icon name="chevron-forward" color={theme.onPlate} />}
+    {!!onPress && <Icon name="chevron-forward" color={theme.muted} size={17} />}
   </>;
-  const plate: ViewStyle = { minHeight: 100, minWidth: 48, padding: 14, gap: 16, flexDirection: "row", flexWrap: "wrap", alignItems: "center",
-    backgroundColor: theme.plate, borderRadius: 10, borderWidth: 2, borderColor: theme.scheme === "dark" ? theme.border : theme.plate };
+  const plate: ViewStyle = {
+    minHeight: 72, minWidth: 48, paddingVertical: 11, paddingHorizontal: 4, gap: 12,
+    flexDirection: "row", flexWrap: "wrap", alignItems: "center",
+    borderBottomWidth: 1, borderBottomColor: theme.edge,
+  };
   return onPress ? <ScalePressable accessibilityRole="button" accessibilityLabel={label.join(", ")}
     accessibilityState={{ disabled: false }} onPress={onPress}
-    style={({ focused, pressed }: PressState) => [plate, { opacity: pressed ? 0.9 : 1 }, focusRing(focused, theme.action)]}>{content}</ScalePressable>
+    style={({ focused, pressed, hovered }: PressState) => [plate, (pressed || hovered) && { backgroundColor: theme.surface }, focusRing(focused, theme.action)]}>{content}</ScalePressable>
     : <View style={plate}>{content}</View>;
 }
 
@@ -308,17 +410,17 @@ export function StatusChip({ status }: { status: LineStatus }) {
     return () => { animation.stop(); progress.setValue(1); };
   }, [status, reduced, progress]);
   function chip(state: LineStatus, opacity: Animated.Value | Animated.AnimatedInterpolation<number>, overlay = false) {
-    const backgroundColor = state === "activa" ? theme.action : state === "inactiva" ? theme.error : theme.signal;
-    const color = state === "temporal" ? theme.signalInk : theme.onAction;
+    const backgroundColor = state === "activa" ? theme.activeSurface : state === "inactiva" ? theme.inactiveSurface : theme.temporarySurface;
+    const color = state === "activa" ? theme.activeInk : state === "inactiva" ? theme.error : theme.temporaryInk;
     return <Animated.View pointerEvents="none" accessibilityElementsHidden={overlay}
       importantForAccessibility={overlay ? "no-hide-descendants" : undefined} aria-hidden={overlay || undefined}
-      style={[{ borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor, opacity },
-        overlay && { position: "absolute", top: 0, left: 0 }]}>
-      <Icon name={state === "activa" ? "checkmark-circle" : state === "inactiva" ? "close-circle" : "time-outline"} size={18} color={color} />
-      <Text style={{ color, fontFamily: theme.fonts.semibold, fontSize: 14, flexShrink: 1 }}>{t(statusLabelKey(state))}</Text>
+      style={[{ borderRadius: 5, paddingHorizontal: 6, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor, opacity },
+        overlay && { position: "absolute", top: 0, left: 0, maxWidth: "100%" }]}>
+      <Icon name={state === "activa" ? "checkmark-circle" : state === "inactiva" ? "close-circle" : "time-outline"} size={14} color={color} />
+      <Text style={{ color, fontFamily: theme.fonts.semibold, fontSize: 13, flexShrink: 1 }}>{t(statusLabelKey(state))}</Text>
     </Animated.View>;
   }
-  return <View accessible accessibilityRole="text" accessibilityLabel={t(statusLabelKey(status))} style={{ alignSelf: "flex-start" }}>
+  return <View accessible accessibilityRole="text" accessibilityLabel={t(statusLabelKey(status))} style={{ alignSelf: "flex-start", maxWidth: "100%" }}>
     {chip(status, progress)}
     {outgoing && chip(outgoing, progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), true)}
   </View>;
