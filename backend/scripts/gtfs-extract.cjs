@@ -17,6 +17,47 @@ const colors = {
   E01: "#598200",
 };
 
+// Every original shape point stays within this distance of the stored line.
+const SHAPE_TOLERANCE_M = 5;
+
+// Douglas-Peucker on a local metric projection. Sampling every Nth point
+// instead cut across blocks by up to 471 m on the Antofagasta feed.
+function simplify(points, tolerance) {
+  if (points.length < 3) return points;
+  const [lat0, lon0] = [points[0].lat, points[0].lon];
+  const m = (Math.PI * 6371000) / 180;
+  const xy = points.map((p) => [
+    (p.lon - lon0) * m * Math.cos((lat0 * Math.PI) / 180),
+    (p.lat - lat0) * m,
+  ]);
+  const distance = ([x, y], [ax, ay], [bx, by]) => {
+    const dx = bx - ax,
+      dy = by - ay,
+      size = dx * dx + dy * dy;
+    const t = size
+      ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / size))
+      : 0;
+    return Math.hypot(x - ax - t * dx, y - ay - t * dy);
+  };
+  const keep = new Uint8Array(points.length);
+  keep[0] = keep[points.length - 1] = 1;
+  const stack = [[0, points.length - 1]];
+  while (stack.length) {
+    const [first, last] = stack.pop();
+    let max = 0,
+      index = -1;
+    for (let i = first + 1; i < last; i++) {
+      const d = distance(xy[i], xy[first], xy[last]);
+      if (d > max) [max, index] = [d, i];
+    }
+    if (max > tolerance) {
+      keep[index] = 1;
+      stack.push([first, index], [index, last]);
+    }
+  }
+  return points.filter((_, i) => keep[i]);
+}
+
 function text(value) {
   // Read bytes as latin1. Some supplied exports already contain UTF-8: repair only
   // a lossless UTF-8 round trip, leaving genuine latin1 (including 0xe1) intact.
@@ -259,10 +300,10 @@ async function extract(directory) {
       const points = (shapes.get(t.shape_id) || []).sort(
         (a, b) => a.posicion - b.posicion,
       );
-      const stride = Math.max(1, Math.ceil((points.length - 1) / 149));
-      const shape = points
-        .filter((p, i) => i % stride === 0 || i === points.length - 1)
-        .map((p) => [p.lat, p.lon]);
+      const shape = simplify(points, SHAPE_TOLERANCE_M).map((p) => [
+        p.lat,
+        p.lon,
+      ]);
       return {
         linea: r.base,
         codigo: r.route_short_name,
@@ -324,4 +365,4 @@ if (require.main === module) {
         process.exitCode = 1;
       });
 }
-module.exports = { extract };
+module.exports = { extract, simplify, SHAPE_TOLERANCE_M };

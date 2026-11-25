@@ -60,7 +60,7 @@ test("v2 extracción CSV latin1 elige el viaje mayor, respeta secuencia, variant
     );
     assert.deepEqual(route.paraderos, ["s1", "s2"]);
     assert.equal(route.destino, "Huáscar");
-    assert.ok(route.shape.length <= 150);
+    assert.equal(route.shape.length, 2); // 601 identical points collapse to the ends
     assert.equal(data.paraderos.length, 2);
     const variant = data.recorridos.find((r) => r.codigo === "102N");
     assert.equal(variant.variante, 1);
@@ -119,5 +119,42 @@ test("v2 extracción rechaza coordenadas no finitas o fuera de rango y CSV mal f
     await assert.rejects(extract(dir), /CSV/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("trazado GTFS conserva esquinas y queda a 5 m o menos del original", () => {
+  const { simplify, SHAPE_TOLERANCE_M } = require("../scripts/gtfs-extract.cjs");
+  const deg = 1 / 111195; // ~1 m in latitude
+  // An L-shaped street (500 m north, then 500 m east) sampled every metre, with 2 m jitter.
+  const points = [];
+  for (let i = 0; i <= 500; i++) points.push({ lat: -23.6 + i * deg, lon: -70.4 + (i % 2) * 2 * deg });
+  for (let i = 1; i <= 500; i++) points.push({ lat: -23.6 + 500 * deg, lon: -70.4 + (i * deg) / Math.cos((23.6 * Math.PI) / 180) });
+  const kept = simplify(points, SHAPE_TOLERANCE_M);
+  assert.ok(kept.length < 10, `quedaron ${kept.length} puntos`);
+  assert.ok(kept.some((p) => p === points[500]), "conserva la esquina");
+  const xy = (p) => [(p.lon + 70.4) * 111195 * Math.cos((23.6 * Math.PI) / 180), (p.lat + 23.6) * 111195];
+  const gap = (p) => Math.min(...kept.slice(1).map((b, i) => {
+    const [x, y] = xy(p), [ax, ay] = xy(kept[i]), [bx, by] = xy(b), dx = bx - ax, dy = by - ay;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(x - ax - t * dx, y - ay - t * dy);
+  }));
+  assert.ok(Math.max(...points.map(gap)) <= SHAPE_TOLERANCE_M);
+});
+
+test("datos versionados: cada paradero queda a 40 m o menos de su trazado", () => {
+  const data = require("../src/database/data/antofagasta.json");
+  const stops = new Map(data.paraderos.map((s) => [s.id, s]));
+  const m = 111195, k = Math.cos((23.6 * Math.PI) / 180);
+  for (const route of data.recorridos) {
+    const line = route.shape.map(([lat, lon]) => [lon * m * k, lat * m]);
+    for (const id of route.paraderos) {
+      const s = stops.get(id), x = s.longitud * m * k, y = s.latitud * m;
+      const d = Math.min(...line.slice(1).map(([bx, by], i) => {
+        const [ax, ay] = line[i], dx = bx - ax, dy = by - ay, size = dx * dx + dy * dy;
+        const t = size ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / size)) : 0;
+        return Math.hypot(x - ax - t * dx, y - ay - t * dy);
+      }));
+      assert.ok(d <= 40, `${route.codigo} sentido ${route.direction_id}: ${id} a ${Math.round(d)} m`);
+    }
   }
 });

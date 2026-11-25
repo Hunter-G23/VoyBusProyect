@@ -3,6 +3,8 @@ const cors = require("cors");
 const { repository } = require("./models/repository");
 const { authService } = require("./services/auth");
 const { redService } = require("./services/red");
+const { mapTrafficService } = require("./services/mapTraffic");
+const { visibleLines } = require("./services/lineState");
 const { viajeService } = require("./services/viaje");
 const { conductorService } = require("./services/conductor");
 const { favoritosService } = require("./services/favoritos");
@@ -13,13 +15,15 @@ function createApp(db, config, now = () => new Date()) {
   const app = express();
   app.disable("x-powered-by");
   const repo = repository(db);
+  const traffic = mapTrafficService(db, repo, config);
+  const visible = () => visibleLines(traffic.vehicles(now()));
   const services = {
     auth: authService(db, repo, config),
-    red: redService(db, repo, config, now),
+    red: redService(db, traffic, visible, config, now),
     viaje: viajeService(db, repo),
     conductor: conductorService(db),
-    favoritos: favoritosService(db),
-    admin: adminService(db),
+    favoritos: favoritosService(db, visible),
+    admin: adminService(db, visible),
   };
   const controller = controllers(services, config);
   app.use((req, res, next) => {

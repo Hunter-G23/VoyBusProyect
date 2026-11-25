@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS usuario (
 CREATE TABLE IF NOT EXISTS linea (
  id INTEGER PRIMARY KEY, codigo TEXT NOT NULL UNIQUE, nombre TEXT NOT NULL, activa INTEGER NOT NULL DEFAULT 1 CHECK(activa IN (0,1)),
  color TEXT, color_texto TEXT, electrica INTEGER NOT NULL DEFAULT 0 CHECK(electrica IN (0,1)),
- estado TEXT NOT NULL DEFAULT 'activa' CHECK(estado IN ('activa','inactiva','temporal')), fuente TEXT
+ estado TEXT NOT NULL DEFAULT 'activa' CHECK(estado IN ('activa','inactiva','temporal')), fuente TEXT,
+ modo_estado TEXT NOT NULL DEFAULT 'manual' CHECK(modo_estado IN ('auto','manual'))
 );
 CREATE TABLE IF NOT EXISTS recorrido (
  id INTEGER PRIMARY KEY, linea_id INTEGER NOT NULL REFERENCES linea(id), nombre TEXT NOT NULL,
@@ -76,6 +77,8 @@ CREATE TABLE IF NOT EXISTS linea_estado_evento (
  id INTEGER PRIMARY KEY, linea_id INTEGER NOT NULL REFERENCES linea(id),
  estado_anterior TEXT NOT NULL CHECK(estado_anterior IN ('activa','inactiva','temporal')),
  estado_nuevo TEXT NOT NULL CHECK(estado_nuevo IN ('activa','inactiva','temporal')),
- admin_id INTEGER NOT NULL REFERENCES usuario(id), fecha TEXT NOT NULL
+ admin_id INTEGER NOT NULL REFERENCES usuario(id), fecha TEXT NOT NULL,
+ modo_anterior TEXT CHECK(modo_anterior IN ('auto','manual')),
+ modo_nuevo TEXT CHECK(modo_nuevo IN ('auto','manual'))
 );
 CREATE INDEX IF NOT EXISTS linea_estado_evento_linea ON linea_estado_evento(linea_id,id);

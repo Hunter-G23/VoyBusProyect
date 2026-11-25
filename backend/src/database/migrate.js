@@ -40,6 +40,22 @@ function migrate(db) {
         "UPDATE linea SET estado=CASE WHEN activa=1 THEN 'activa' ELSE 'inactiva' END",
       );
     add("linea", "fuente", "TEXT");
+    if (
+      add(
+        "linea",
+        "modo_estado",
+        "TEXT NOT NULL DEFAULT 'manual' CHECK(modo_estado IN ('auto','manual'))",
+      )
+    )
+      db.exec(
+        "UPDATE linea SET modo_estado='auto' WHERE estado='activa' AND fuente LIKE 'gtfs:%'",
+      );
+    for (const column of ["modo_anterior", "modo_nuevo"])
+      add(
+        "linea_estado_evento",
+        column,
+        `TEXT CHECK(${column} IN ('auto','manual'))`,
+      );
     if (add("recorrido", "codigo", "TEXT"))
       db.exec(
         "UPDATE recorrido SET codigo=(SELECT codigo FROM linea WHERE id=recorrido.linea_id)",

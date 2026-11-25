@@ -46,6 +46,8 @@ function routes(controller, repo, config) {
   router.get("/red/lineas/:id/recorridos", controller.routes);
   router.get("/red/recorridos/:id/paraderos", controller.stops);
   router.get("/red/vehiculos", controller.vehicles);
+  router.get("/red/mapa", controller.map);
+  router.get("/red/paraderos/:id/llegadas", controller.arrivals);
   router.get("/viaje/actual", auth, passenger, controller.current);
   router.post("/viaje/vincular", auth, passenger, controller.link);
   router.post("/viaje/solicitudes", auth, passenger, controller.createRequest);

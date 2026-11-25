@@ -1,8 +1,11 @@
 const { transaction } = require("../database/db");
 const { fail, positiveId } = require("../utils/errors");
+const { lineColumns, publishLine } = require("./lineState");
 
-function favoritosService(db) {
+function favoritosService(db, visibleLines) {
   function list(userId) {
+    const visible = visibleLines();
+    const line = db.prepare(`SELECT ${lineColumns} FROM linea WHERE id=?`);
     return db
       .prepare(
         "SELECT id,linea_id,recorrido_id,creado_en FROM favorito WHERE usuario_id=? ORDER BY id",
@@ -10,11 +13,7 @@ function favoritosService(db) {
       .all(userId)
       .map((f) => ({
         id: f.id,
-        linea: db
-          .prepare(
-            "SELECT id,codigo,nombre,color,color_texto,electrica,estado,fuente FROM linea WHERE id=?",
-          )
-          .get(f.linea_id),
+        linea: publishLine(line.get(f.linea_id), visible),
         recorrido:
           f.recorrido_id === null
             ? null

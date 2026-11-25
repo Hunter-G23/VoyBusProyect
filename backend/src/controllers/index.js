@@ -73,6 +73,8 @@ function controllers(services, config) {
     routes: (req, res) => res.json(services.red.routes(req.params.id)),
     stops: (req, res) => res.json(services.red.stops(req.params.id)),
     vehicles: (req, res) => res.json(services.red.vehicles()),
+    map: (req, res) => res.json(services.red.map()),
+    arrivals: (req, res) => res.json(services.red.arrivals(req.params.id)),
     current: (req, res) => res.json(services.viaje.current(req.user.id)),
     link: (req, res) => {
       const data = services.viaje.link(req.user.id, req.body);

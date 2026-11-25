@@ -20,7 +20,9 @@ test("v2 seed carga GTFS real idempotente con variantes y vehículos demo en rec
     }).listen(0, "127.0.0.1");
     await new Promise((r) => server.once("listening", r));
     const base = `http://127.0.0.1:${server.address().port}/api`;
-    const lines = await (await fetch(base + "/red/lineas")).json();
+    const initial = await (await fetch(base + "/red/lineas")).json();
+    assert.deepEqual(initial.lineas, []);
+    const lines = await (await fetch(base + "/red/lineas?todas=1")).json();
     assert.deepEqual(
       lines.lineas.map((l) => l.codigo),
       [
@@ -40,7 +42,8 @@ test("v2 seed carga GTFS real idempotente con variantes y vehículos demo en rec
       ],
     );
     for (const line of lines.lineas) {
-      assert.equal(line.estado, "activa");
+      assert.equal(line.estado, "inactiva");
+      assert.equal(line.modo_estado, "auto");
       assert.equal(line.electrica, line.codigo === "E01" ? 1 : 0);
       assert.equal(
         line.color_texto,
@@ -86,14 +89,44 @@ test("v2 seed carga GTFS real idempotente con variantes y vehículos demo en rec
     assert.equal(services[0].sentido, "Ida");
     assert.notEqual(services[1].codigo, "102");
     assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
-    db.prepare("UPDATE linea SET estado='temporal' WHERE codigo='102'").run();
+    db.prepare(
+      "UPDATE linea SET estado='temporal',modo_estado='manual' WHERE codigo='102'",
+    ).run();
     seed(db);
-    assert.equal(
-      db.prepare("SELECT estado FROM linea WHERE codigo='102'").get().estado,
-      "temporal",
+    const override = db
+      .prepare("SELECT estado,modo_estado FROM linea WHERE codigo='102'")
+      .get();
+    assert.deepEqual(
+      { ...override },
+      { estado: "temporal", modo_estado: "manual" },
     );
   } finally {
     if (server) await new Promise((r) => server.close(r));
+    db.close();
+  }
+});
+test("migración convierte líneas GTFS activas a automático una sola vez", () => {
+  const db = openDatabase(":memory:");
+  try {
+    db.exec(`CREATE TABLE linea (
+      id INTEGER PRIMARY KEY, codigo TEXT NOT NULL UNIQUE, nombre TEXT NOT NULL,
+      activa INTEGER NOT NULL DEFAULT 1, estado TEXT NOT NULL, fuente TEXT
+    );
+    INSERT INTO linea(codigo,nombre,activa,estado,fuente) VALUES
+      ('102','Centro',1,'activa','gtfs:test'),
+      ('103','Norte',0,'inactiva','gtfs:test'),
+      ('104','Sur',0,'temporal','gtfs:test'),
+      ('105','Legada',1,'activa',NULL);`);
+    migrate(db);
+    const modes = db.prepare("SELECT modo_estado FROM linea ORDER BY codigo");
+    assert.deepEqual(
+      modes.all().map((l) => l.modo_estado),
+      ["auto", "manual", "manual", "manual"],
+    );
+    db.exec("UPDATE linea SET modo_estado='manual' WHERE codigo='102'");
+    migrate(db);
+    assert.ok(modes.all().every((l) => l.modo_estado === "manual"));
+  } finally {
     db.close();
   }
 });

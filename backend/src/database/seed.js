@@ -25,7 +25,7 @@ function seed(db) {
     const lines = new Map();
     for (const l of data.lineas) {
       db.prepare(
-        `INSERT INTO linea(codigo,nombre,color,color_texto,electrica,estado,fuente) VALUES(?,?,?,?,?,'activa',?)
+        `INSERT INTO linea(codigo,nombre,color,color_texto,electrica,estado,fuente,modo_estado) VALUES(?,?,?,?,?,'activa',?,'auto')
         ON CONFLICT(codigo) DO UPDATE SET nombre=excluded.nombre,color=excluded.color,
         color_texto=excluded.color_texto,electrica=excluded.electrica,fuente=excluded.fuente`,
       ).run(

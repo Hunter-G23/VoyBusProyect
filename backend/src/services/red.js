@@ -1,11 +1,29 @@
 const { fail, positiveId } = require("../utils/errors");
-function redService(db, repo, config, now) {
+const { lineColumns, hasMapPosition, publishLine } = require("./lineState");
+const { FRESHNESS_MS } = require("./mapTraffic");
+function redService(db, traffic, visibleLines, config, now) {
+  function lines(todas = false) {
+    const visible = visibleLines();
+    return db
+      .prepare(`SELECT ${lineColumns} FROM linea ORDER BY codigo`)
+      .all()
+      .map((line) => publishLine(line, visible))
+      .filter((line) => todas || line.estado === "activa"); // RF04
+  }
+
   return {
+    lines,
+    map() {
+      return traffic.map(lines(true));
+    },
+    arrivals(value) {
+      return traffic.arrivals(value, now());
+    },
     vehicles() {
       // RF07
       const fecha = now();
-      const vehiculos = repo.activeVehicles();
-      const posiciones = vehiculos.filter((v) => v.medida_en !== null);
+      const vehiculos = traffic.vehicles(fecha);
+      const posiciones = vehiculos.filter(hasMapPosition);
       return {
         fuente: (
           posiciones.length
@@ -21,37 +39,31 @@ function redService(db, repo, config, now) {
           linea: v.linea,
           recorrido_id: v.recorrido_id,
           sentido: v.sentido,
-          posicion:
-            v.medida_en === null
-              ? null
-              : {
-                  latitud: v.latitud,
-                  longitud: v.longitud,
-                  medida_en: v.medida_en,
-                  desactualizada: fecha - Date.parse(v.medida_en) > 30000,
-                },
+          ...(v.simulado ? { simulado: true } : {}),
+          proximo_paradero_id: traffic.nextStop(v, fecha),
+          posicion: !hasMapPosition(v)
+            ? null
+            : {
+                latitud: v.latitud,
+                longitud: v.longitud,
+                medida_en: v.medida_en,
+                desactualizada: fecha - Date.parse(v.medida_en) > FRESHNESS_MS,
+              },
         })),
       };
     },
-    lines: (todas = false) =>
-      db
-        .prepare(
-          `SELECT id,codigo,nombre,color,color_texto,electrica,estado,fuente FROM linea
-          ${todas ? "" : "WHERE estado='activa'"} ORDER BY codigo`,
-        )
-        .all(), // RF04
     routes(value) {
       // RF05
       const id = positiveId(value);
       const linea = db
         .prepare(
-          "SELECT id,codigo,nombre,color,color_texto,electrica,estado,fuente FROM linea WHERE id=? AND activa=1",
+          `SELECT ${lineColumns} FROM linea WHERE id=? AND (activa=1 OR modo_estado='auto')`,
         )
         .get(id);
       if (!linea)
         fail(404, "LINEA_NO_DISPONIBLE", "Esta línea no está disponible.");
       return {
-        linea,
+        linea: publishLine(linea, visibleLines()),
         recorridos: db
           .prepare(
             "SELECT id,nombre,sentido,origen,destino,codigo,variante FROM recorrido WHERE linea_id=? AND activo=1 ORDER BY id",
@@ -65,7 +77,7 @@ function redService(db, repo, config, now) {
       const recorrido = db
         .prepare(
           `SELECT r.id,r.nombre,r.sentido,r.origen,r.destino,l.codigo AS linea FROM recorrido r
-        JOIN linea l ON l.id=r.linea_id WHERE r.id=? AND r.activo=1 AND l.activa=1`,
+        JOIN linea l ON l.id=r.linea_id WHERE r.id=? AND r.activo=1 AND (l.activa=1 OR l.modo_estado='auto')`,
         )
         .get(id);
       if (!recorrido)

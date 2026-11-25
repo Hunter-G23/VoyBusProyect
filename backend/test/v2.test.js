@@ -744,3 +744,99 @@ test("v2 estado de línea exige administrador, audita anterior/nuevo/actor y der
     404,
   );
 });
+
+test("estado automático sigue la última posición visible en catálogo, recorridos y favoritos", async () => {
+  db.exec("UPDATE linea SET modo_estado='auto' WHERE id=1");
+  assert.equal((await call("POST", "/favoritos", { linea_id: 1 })).status, 201);
+
+  async function assertPublished(expected) {
+    const lines = (await call("GET", "/red/lineas?todas=1")).data.lineas;
+    assert.equal(lines[0].modo_estado, "auto");
+    assert.equal(lines[0].estado, expected);
+    const active = (await call("GET", "/red/lineas")).data.lineas;
+    assert.equal(
+      active.some((line) => line.id === 1),
+      expected === "activa",
+    );
+    const routes = await call("GET", "/red/lineas/1/recorridos");
+    assert.equal(routes.status, 200);
+    assert.equal(routes.data.linea.estado, expected);
+    const favorites = (await call("GET", "/favoritos")).data.favoritos;
+    assert.equal(favorites[0].linea.estado, expected);
+  }
+
+  await assertPublished("inactiva");
+  const sample = db.prepare(
+    "INSERT INTO posicion_vehiculo(servicio_id,latitud,longitud,medida_en) VALUES(1,?,?,?)",
+  );
+  sample.run(-23.64, -70.39, "2020-01-01T12:00:00.000Z");
+  await assertPublished("activa");
+  let vehicles = (await call("GET", "/red/vehiculos")).data.vehiculos;
+  assert.equal(vehicles[0].posicion.desactualizada, true);
+
+  db.exec("PRAGMA ignore_check_constraints=ON");
+  sample.run(-91, -70.39, "2020-01-01T12:00:01.000Z");
+  db.exec("PRAGMA ignore_check_constraints=OFF");
+  await assertPublished("inactiva");
+  vehicles = (await call("GET", "/red/vehiculos")).data.vehiculos;
+  assert.equal(vehicles[0].posicion, null);
+  sample.run(-23.64, -70.39, "2020-01-01T12:00:02.000Z");
+  await assertPublished("activa");
+  db.exec("UPDATE servicio SET estado='finalizado' WHERE id=1");
+  await assertPublished("inactiva");
+  db.exec("UPDATE servicio SET estado='activo' WHERE id=1");
+  await assertPublished("activa");
+});
+
+test("administrador puede fijar estados y volver a automático con auditoría de modo", async () => {
+  const url = "/admin/lineas/1/estado";
+  const auto = { modo_estado: "auto" };
+  const patch = (body, token = tokens.admin) => call("PATCH", url, body, token);
+  assert.equal((await patch(auto, tokens.a)).status, 403);
+  assert.equal((await patch(auto, tokens.d)).status, 403);
+  assert.equal((await patch(auto, null)).status, 401);
+  assert.equal((await patch({ modo_estado: "desconocido" })).status, 400);
+  assert.equal((await patch({ ...auto, estado: "activa" })).status, 400);
+
+  let line = (await patch(auto)).data.linea;
+  assert.equal(line.estado, "inactiva");
+  assert.equal(line.modo_estado, "auto");
+  line = (await patch({ estado: "activa" })).data.linea;
+  assert.equal(line.estado, "activa");
+  assert.equal(line.modo_estado, "manual");
+
+  db.exec(`INSERT INTO posicion_vehiculo(servicio_id,latitud,longitud,medida_en)
+    VALUES(1,-23.64,-70.39,'2020-01-01T12:00:00.000Z')`);
+  line = (await patch({ estado: "temporal" })).data.linea;
+  assert.equal(line.estado, "temporal");
+  assert.equal((await call("GET", "/red/lineas/1/recorridos")).status, 404);
+  assert.equal((await call("GET", "/red/recorridos/1/paraderos")).status, 404);
+
+  line = (await patch(auto)).data.linea;
+  assert.equal(line.estado, "activa");
+  assert.equal(line.modo_estado, "auto");
+  assert.equal(
+    db.prepare("SELECT estado FROM linea WHERE id=1").get().estado,
+    "temporal",
+  );
+  assert.equal((await call("GET", "/red/lineas/1/recorridos")).status, 200);
+  assert.equal((await call("GET", "/red/recorridos/1/paraderos")).status, 200);
+
+  await patch({ estado: "activa" });
+  const events = await call(
+    "GET",
+    "/admin/lineas/eventos?linea_id=1",
+    undefined,
+    tokens.admin,
+  );
+  const [event] = events.data.eventos;
+  assert.equal(event.estado_anterior, "activa");
+  assert.equal(event.estado_nuevo, "activa");
+  assert.equal(event.modo_anterior, "auto");
+  assert.equal(event.modo_nuevo, "manual");
+  assert.equal(event.admin_id, 6);
+  const count = db.prepare("SELECT COUNT(*) n FROM linea_estado_evento");
+  assert.equal(count.get().n, 5);
+  await patch({ estado: "activa" });
+  assert.equal(count.get().n, 5);
+});
